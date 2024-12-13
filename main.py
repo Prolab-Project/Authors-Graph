@@ -42,20 +42,31 @@ class Graph:
             for edge, weight in self.edges.items():
                 output.append(f"Edge: {edge}, Weight: {weight}\n")
 
-            
             print("Nodes (limited):")
             for i, line in enumerate(output):
                 if i < terminal_limit:  
                     print(line.strip())
-                file.write(line)  
+                file.write(line)
 
-authorGraph = Graph()
-
-data = pd.read_excel("data/dataset.xlsx")
+file_path = 'data/dataset.xlsx'
+data = pd.read_excel(file_path)
 
 unique_authors = data["author_name"].dropna().unique()
 author_id_map = {author.lower(): idx + 1 for idx, author in enumerate(unique_authors)}
 
+all_coauthors = set()
+for coauthor_list in data["coauthors"].apply(parse_coauthors):
+    all_coauthors.update(coauthor_list)
+
+existing_authors = set(author_id_map.keys())
+missing_coauthors = all_coauthors - existing_authors
+
+next_id = max(author_id_map.values(), default=0) + 1
+for coauthor in missing_coauthors:
+    author_id_map[coauthor] = next_id
+    next_id += 1
+
+authorGraph = Graph()
 for author_name, author_ID in author_id_map.items():
     authorGraph.addNode(author_ID, author_name)
 
@@ -65,7 +76,6 @@ data["coauthors"] = data["coauthors"].apply(parse_coauthors)
 for _, row in data.iterrows():
     coauthors = row["coauthors"]
     for coauthor in coauthors:
-        if coauthor in author_id_map:
-            authorGraph.addEdges(row["author_id"], author_id_map[coauthor])
+        authorGraph.addEdges(row["author_id"], author_id_map[coauthor])
 
 authorGraph.writeTxt("graph_output.txt", terminal_limit=10)
