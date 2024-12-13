@@ -1,4 +1,5 @@
 import pandas as pd
+import sys
 
 def parse_coauthors(coauthor_str):
     if pd.isna(coauthor_str):
@@ -48,6 +49,65 @@ class Graph:
                     print(line.strip())
                 file.write(line)
 
+    def getNodes(self):
+        return self.nodes     
+
+    def get_outgoing_edges(self, node):
+        """Bir düğümün komşularını döndürür."""
+        if node in self.nodes:
+            return self.nodes[node]["connections"]
+        return []
+
+    def value(self, from_node, to_node):
+        """İki düğüm arasındaki kenar ağırlığını döndürür."""
+        edge = (min(from_node, to_node), max(from_node, to_node))
+        return self.edges.get(edge, float('inf')) 
+
+def dijkstra(Graph, start_node): 
+    unvisited_nodes = list(Graph.getNodes().keys())
+    shortest_path = {}
+    previous_nodes = {}
+    max_value = sys.maxsize
+    
+    for node in unvisited_nodes: 
+        shortest_path[node] = max_value
+    shortest_path[start_node] = 0 
+    
+    while unvisited_nodes:
+        current_min_node = None 
+        for node in unvisited_nodes: 
+            if current_min_node is None or shortest_path[node] < shortest_path[current_min_node]:
+                current_min_node = node
+        
+        neighbors = Graph.get_outgoing_edges(current_min_node)
+        for neighbor in neighbors:
+            temp_value = shortest_path[current_min_node] + Graph.value(current_min_node, neighbor)
+            if temp_value < shortest_path[neighbor]:
+                shortest_path[neighbor] = temp_value
+                previous_nodes[neighbor] = current_min_node
+        
+        unvisited_nodes.remove(current_min_node)
+    
+    return previous_nodes, shortest_path
+
+def find_shortest_path(graph, start_id, end_id):
+    previous_nodes, shortest_path = dijkstra(graph, start_id)
+    path = []
+    current_node = end_id
+
+    while current_node != start_id:
+        path.append(current_node)
+        current_node = previous_nodes.get(current_node)
+        if current_node is None:
+            return None, float('inf')
+
+    path.append(start_id)
+    path.reverse()
+    return path, shortest_path[end_id]
+
+start_id = int(input("Enter the start ID "))
+end_id = int(input("Enter the End ID "))
+
 file_path = 'data/dataset.xlsx'
 data = pd.read_excel(file_path)
 
@@ -78,4 +138,12 @@ for _, row in data.iterrows():
     for coauthor in coauthors:
         authorGraph.addEdges(row["author_id"], author_id_map[coauthor])
 
-authorGraph.writeTxt("graph_output.txt", terminal_limit=10)
+# En kısa yol bulma ve yazdırma
+path, distance = find_shortest_path(authorGraph, start_id, end_id)
+if path is None:
+    print(f"There is no path between {start_id} and {end_id} ")
+else:
+    print(f"Shortest path: {path}")
+    print(f"Total distance: {distance}")
+
+authorGraph.writeTxt(output_file="graph_output.txt")
