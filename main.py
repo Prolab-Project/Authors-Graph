@@ -148,4 +148,6 @@ else:
     print(f"Shortest path: {path}")
     print(f"Total distance: {distance}")
 
+
 authorGraph.writeTxt(output_file="graph_output.txt")
+print("txt dosyasina yazdırıldı")
