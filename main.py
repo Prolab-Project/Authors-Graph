@@ -8,7 +8,6 @@ def parse_coauthors(coauthor_str):
     coauthor_list = [x.strip().strip("'").strip('"').lower() for x in coauthor_str.split(",")]
     return coauthor_list
 
-
 class Graph:
     def __init__(self):
         self.nodes = {}
@@ -38,7 +37,11 @@ class Graph:
 
             output.append("Nodes:\n")
             for node_id, node_data in self.nodes.items():
-                output.append(f"ORCID: {node_id}, Name: {node_data['name']}, Connections: {node_data['connections']}\n")
+                connections = [
+                    self.nodes[conn]["name"] if conn not in self.nodes else conn
+                    for conn in node_data['connections']
+                ]
+                output.append(f"ORCID: {node_id}, Name: {node_data['name']}, Connections: {connections}\n")
 
             output.append("\nEdge Weights:\n")
             for edge, weight in self.edges.items():
@@ -46,24 +49,21 @@ class Graph:
 
             print("Nodes (limited):")
             for i, line in enumerate(output):
-                if i < terminal_limit:  
+                if i < terminal_limit:
                     print(line.strip())
                 file.write(line)
 
     def getNodes(self):
-        return self.nodes     
+        return self.nodes
 
     def get_outgoing_edges(self, node):
-        """Bir düğümün komşularını döndürür."""
         if node in self.nodes:
             return self.nodes[node]["connections"]
         return []
 
     def value(self, from_node, to_node):
-        """İki düğüm arasındaki kenar ağırlığını döndürür."""
         edge = (min(from_node, to_node), max(from_node, to_node))
         return self.edges.get(edge, float('inf'))
-
 
 def dijkstra(Graph, start_node):
     unvisited_nodes = list(Graph.getNodes().keys())
@@ -105,25 +105,45 @@ def find_shortest_path(graph, start_id, end_id):
     path.reverse()
     return path, shortest_path[end_id]
 
-start_id = input("Enter the start ORCID: ")
-end_id = input("Enter the end ORCID: ")
-
+start_orcid = input("Enter the start ORCID: ")
+end_orcid = input("Enter the end ORCID: ")
 file_path = 'data/dataset.xlsx'
 data = pd.read_excel(file_path)
 
+unique_authors = data[["author_name", "orcid"]].dropna().drop_duplicates()
+author_id_map = {row.orcid: row.author_name.lower() for _, row in unique_authors.iterrows()}
+
+all_coauthors = set()
+for coauthor_list in data["coauthors"].apply(parse_coauthors):
+    all_coauthors.update(coauthor_list)
+
+existing_authors = set(author_id_map.values())
+missing_coauthors = all_coauthors - existing_authors
+
+next_id = len(author_id_map) + 1
+for coauthor in missing_coauthors:
+    author_id_map[f"generated-{next_id}"] = coauthor
+    next_id += 1
+
 authorGraph = Graph()
-for _, row in data.iterrows():
-    author_name = row["author_name"]
-    orcid = row["orcid"]
-    coauthors = parse_coauthors(row["coauthors"])
-
+for orcid, author_name in author_id_map.items():
     authorGraph.addNode(orcid, author_name)
-    for coauthor_orcid in coauthors:
-        authorGraph.addEdges(orcid, coauthor_orcid)
 
-path, distance = find_shortest_path(authorGraph, start_id, end_id)
+data["author_orcid"] = data["orcid"].str.lower()
+data["coauthors"] = data["coauthors"].apply(parse_coauthors)
+
+for _, row in data.iterrows():
+    coauthors = row["coauthors"]
+    for coauthor in coauthors:
+        coauthor_orcid = next((k for k, v in author_id_map.items() if v == coauthor), None)
+        if coauthor_orcid:
+            authorGraph.addEdges(row["author_orcid"], coauthor_orcid)
+
+authorGraph.writeTxt("graph_output.txt", terminal_limit=10)
+
+path, distance = find_shortest_path(authorGraph, start_orcid, end_orcid)
 if path is None:
-    print(f"There is no path between {start_id} and {end_id}")
+    print(f"There is no path between {start_orcid} and {end_orcid}")
 else:
     print(f"Shortest path: {path}")
     print(f"Total distance: {distance}")
