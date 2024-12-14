@@ -116,6 +116,12 @@ def find_max_connection(graph):
             most_connected_author = orcid 
     return most_connected_author, max_connections         
 
+def find_connection_count(graph, countId) :
+    for orcid , node_data in graph.getNodes().items() : 
+        if orcid == countId : 
+            count_connection = len (node_data["connections"])
+            return count_connection
+    return None      
 
 file_path = 'data/dataset.xlsx'
 data = pd.read_excel(file_path)
@@ -167,3 +173,10 @@ author_name = authorGraph.getNodes()[most_connected_author]["name"]
 
 print(f"Most connected author: {author_name} (ORCID: {most_connected_author})")
 print(f"Number of connections: {max_connections}")
+
+countId = input("Type the ID for which you want to calculate the number of connections :")
+count_connection = find_connection_count(authorGraph,countId)
+if count_connection is None : 
+    print ("Count id has no connections")
+else:
+    print(f"Count id number of connections is : {count_connection}")
