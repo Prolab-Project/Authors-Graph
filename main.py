@@ -49,8 +49,8 @@ class Graph:
 
             print("Nodes (limited):")
             for i, line in enumerate(output):
-                if i < terminal_limit:
-                    print(line.strip())
+              #  if i < terminal_limit:
+                  #  print(line.strip())
                 file.write(line)
 
     def getNodes(self):
@@ -105,8 +105,18 @@ def find_shortest_path(graph, start_id, end_id):
     path.reverse()
     return path, shortest_path[end_id]
 
-start_orcid = input("Enter the start ORCID: ")
-end_orcid = input("Enter the end ORCID: ")
+def find_max_connection(graph):
+    max_connections = 0 
+    most_connected_author = None 
+
+    for orcid , node_data in graph.getNodes().items() : 
+        connection_count = len (node_data["connections"]) 
+        if connection_count > max_connections : 
+            max_connections = connection_count 
+            most_connected_author = orcid 
+    return most_connected_author, max_connections         
+
+
 file_path = 'data/dataset.xlsx'
 data = pd.read_excel(file_path)
 
@@ -140,14 +150,20 @@ for _, row in data.iterrows():
             authorGraph.addEdges(row["author_orcid"], coauthor_orcid)
 
 authorGraph.writeTxt("graph_output.txt", terminal_limit=10)
+print("Graf txt dosyasına yazdırıldı: graph_output.txt")
+
+start_orcid = input("Enter the start ORCID: ")
+end_orcid = input("Enter the end ORCID: ")
 
 path, distance = find_shortest_path(authorGraph, start_orcid, end_orcid)
 if path is None:
-    print(f"There is no path between {start_orcid} and {end_orcid}")
+    print(f"\n\nThere is no path between {start_orcid} and {end_orcid}")
 else:
-    print(f"Shortest path: {path}")
-    print(f"Total distance: {distance}")
+    print(f"\n\nShortest path: {path}")
+    print(f"\nTotal distance: {distance}")
+    
+most_connected_author, max_connections = find_max_connection(authorGraph)
+author_name = authorGraph.getNodes()[most_connected_author]["name"]
 
-
-authorGraph.writeTxt(output_file="graph_output.txt")
-print("txt dosyasina yazdırıldı")
+print(f"Most connected author: {author_name} (ORCID: {most_connected_author})")
+print(f"Number of connections: {max_connections}")
