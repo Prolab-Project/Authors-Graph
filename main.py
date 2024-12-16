@@ -1,3 +1,4 @@
+from flask import Flask, jsonify, request, render_template
 import pandas as pd
 import sys
 
@@ -123,6 +124,31 @@ def find_connection_count(graph, countId) :
             return count_connection
     return None      
 
+def find_longest_path(graph, start_node):
+    visited = set()  
+    longest_path = []  
+
+    def dfs(current_node, path):
+        nonlocal longest_path
+        visited.add(current_node)
+        path.append(current_node)
+
+        # Eğer yol, mevcut en uzun yoldan uzunsa, güncelle
+        if len(path) > len(longest_path):
+            longest_path = path[:]
+
+        # Komşuları gez
+        for neighbor in graph.get_outgoing_edges(current_node):
+            if neighbor not in visited:
+                dfs(neighbor, path)
+
+        # Geri dönmeden önce düğümü path'ten çıkar
+        path.pop()
+        visited.remove(current_node)
+
+    dfs(start_node, [])
+    return longest_path
+
 file_path = 'data/dataset.xlsx'
 data = pd.read_excel(file_path)
 
@@ -178,5 +204,14 @@ countId = input("Type the ID for which you want to calculate the number of conne
 count_connection = find_connection_count(authorGraph,countId)
 if count_connection is None : 
     print ("Count id has no connections")
-else:
+
     print(f"Count id number of connections is : {count_connection}")
+
+    start_id = input("Enter the ORCID to find the longest path: ")
+
+if start_id in authorGraph.getNodes():
+    longest_path = find_longest_path(authorGraph, start_id)
+    print(f"\nLongest path from {start_id}: {longest_path}")
+    print(f"Number of nodes in the longest path: {len(longest_path)}")
+else:
+    print(f"No such ORCID {start_id} exists in the graph.")
