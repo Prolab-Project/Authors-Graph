@@ -1,3 +1,4 @@
+from flask import Flask, jsonify, request, render_template
 import pandas as pd
 import sys
 
@@ -49,8 +50,8 @@ class Graph:
 
             print("Nodes (limited):")
             for i, line in enumerate(output):
-                if i < terminal_limit:
-                    print(line.strip())
+              #  if i < terminal_limit:
+                  #  print(line.strip())
                 file.write(line)
 
     def getNodes(self):
@@ -60,6 +61,8 @@ class Graph:
         if node in self.nodes:
             return self.nodes[node]["connections"]
         return []
+    
+    
 
     def value(self, from_node, to_node):
         edge = (min(from_node, to_node), max(from_node, to_node))
@@ -92,6 +95,53 @@ def dijkstra(Graph, start_node):
 
     return previous_nodes, shortest_path
 
+
+
+def create_priority_queue_manual(graph, start_id):
+    """
+    A yazarı ve işbirliği yaptığı yazarlar için düğüm ağırlıklarına göre kuyruk oluşturur.
+    Ağırlık, her bir yazarın toplam işbirliği sayısını ifade eder.
+    Kuyruk elle sıralanır (Python listesi kullanılarak).
+    """
+    if start_id not in graph.getNodes():
+        print(f"No such ORCID {start_id} exists in the graph.")
+        return []
+
+    # Kuyruk: [(ağırlık, yazar_id)] şeklinde bir liste
+    priority_queue = []
+    visited = set()
+
+    # A yazarını kuyruğa ekle
+    start_connections = len(graph.getNodes()[start_id]["connections"])
+    priority_queue.append((start_connections, start_id))
+    visited.add(start_id)
+
+    # A yazarı ile işbirliği yapanları kuyruğa ekle
+    for neighbor in graph.get_outgoing_edges(start_id):
+        if neighbor not in visited:
+            neighbor_connections = len(graph.getNodes()[neighbor]["connections"])
+            priority_queue.append((neighbor_connections, neighbor))
+            visited.add(neighbor)
+
+    # Kuyruğu ağırlıklara (ağırlık sayısına göre) göre büyükten küçüğe sırala
+    for i in range(len(priority_queue)):
+        for j in range(i + 1, len(priority_queue)):
+            if priority_queue[i][0] < priority_queue[j][0]:  # Büyük ağırlık önce gelmeli
+                priority_queue[i], priority_queue[j] = priority_queue[j], priority_queue[i]
+
+    return priority_queue
+
+def print_priority_queue_manual(priority_queue, graph):
+    """
+    Kuyruğu ekrana yazdırır.
+    """
+    print("\nPriority Queue (Yazarlar ve Ağırlıkları):")
+    for weight, author_id in priority_queue:
+        author_name = graph.getNodes()[author_id]["name"]
+        print(f"Yazar: {author_name} (ORCID: {author_id}), İşbirliği Sayısı: {weight}")
+
+
+
 def find_shortest_path(graph, start_id, end_id):
     previous_nodes, shortest_path = dijkstra(graph, start_id)
     path = []
@@ -105,8 +155,43 @@ def find_shortest_path(graph, start_id, end_id):
     path.reverse()
     return path, shortest_path[end_id]
 
-start_orcid = input("Enter the start ORCID: ")
-end_orcid = input("Enter the end ORCID: ")
+def find_max_connection(graph):
+    max_connections = 0 
+    most_connected_author = None 
+
+    for orcid , node_data in graph.getNodes().items() : 
+        connection_count = len (node_data["connections"]) 
+        if connection_count > max_connections : 
+            max_connections = connection_count 
+            most_connected_author = orcid 
+    return most_connected_author, max_connections         
+
+def find_connection_count(graph, countId) :
+    for orcid , node_data in graph.getNodes().items() : 
+        if orcid == countId : 
+            count_connection = len (node_data["connections"])
+            return count_connection
+    return None      
+
+def find_longest_path(graph, start_node):
+    visited = set()  
+    longest_path = []  
+    def dfs(current_node, path):
+        nonlocal longest_path
+        visited.add(current_node)
+        path.append(current_node)
+        # Eğer yol, mevcut en uzun yoldan uzunsa, güncelle
+        if len(path) > len(longest_path):
+            longest_path = path[:]
+        # Komşuları gez
+        for neighbor in graph.get_outgoing_edges(current_node):
+            if neighbor not in visited:
+                dfs(neighbor, path)
+        # Geri dönmeden önce düğümü path'ten çıkar
+        path.pop()
+        visited.remove(current_node)
+    dfs(start_node, [])
+    return longest_path
 file_path = 'data/dataset.xlsx'
 data = pd.read_excel(file_path)
 
@@ -140,14 +225,44 @@ for _, row in data.iterrows():
             authorGraph.addEdges(row["author_orcid"], coauthor_orcid)
 
 authorGraph.writeTxt("graph_output.txt", terminal_limit=10)
+print("Graf txt dosyasına yazdırıldı: graph_output.txt")
+
+start_orcid = input("Enter the start ORCID: ")
+end_orcid = input("Enter the end ORCID: ")
 
 path, distance = find_shortest_path(authorGraph, start_orcid, end_orcid)
 if path is None:
-    print(f"There is no path between {start_orcid} and {end_orcid}")
+    print(f"\n\nThere is no path between {start_orcid} and {end_orcid}")
 else:
-    print(f"Shortest path: {path}")
-    print(f"Total distance: {distance}")
+    print(f"\n\nShortest path: {path}")
+    print(f"\nTotal distance: {distance}")
 
+most_connected_author, max_connections = find_max_connection(authorGraph)
+author_name = authorGraph.getNodes()[most_connected_author]["name"]
 
-authorGraph.writeTxt(output_file="graph_output.txt")
-print("txt dosyasina yazdırıldı")
+print(f"Most connected author: {author_name} (ORCID: {most_connected_author})")
+print(f"Number of connections: {max_connections}")
+
+countId = input("Type the ID for which you want to calculate the number of connections :")
+count_connection = find_connection_count(authorGraph,countId)
+
+if count_connection is None : 
+    print ("Count id has no connections")
+    print(f"Count id number of connections is : {count_connection}")
+start_id = input("Enter the ORCID to find the longest path: ")
+if start_id in authorGraph.getNodes():
+    longest_path = find_longest_path(authorGraph, start_id)
+    print(f"\nLongest path from {start_id}: {longest_path}")
+    print(f"Number of nodes in the longest path: {len(longest_path)}")
+else:
+    print(f"Count id number of connections is : {count_connection}")
+    print(f"No such ORCID {start_id} exists in the graph.")
+    
+    
+# 2. İster: Kullanıcıdan yazar ID'si al ve kuyruk oluştur
+author_id = input("dugum olusturmak icin ORCID id giriniz: ")
+if author_id in authorGraph.getNodes():
+    priority_queue = create_priority_queue_manual(authorGraph, author_id)
+    print_priority_queue_manual(priority_queue, authorGraph)
+else:
+    print(f"No such ORCID {author_id} exists in the graph.")
