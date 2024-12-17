@@ -95,8 +95,6 @@ def dijkstra(Graph, start_node):
 
     return previous_nodes, shortest_path
 
-
-
 def create_priority_queue_manual(graph, start_id):
     """
     A yazarı ve işbirliği yaptığı yazarlar için düğüm ağırlıklarına göre kuyruk oluşturur.
@@ -139,7 +137,6 @@ def print_priority_queue_manual(priority_queue, graph):
     for weight, author_id in priority_queue:
         author_name = graph.getNodes()[author_id]["name"]
         print(f"Yazar: {author_name} (ORCID: {author_id}), İşbirliği Sayısı: {weight}")
-
 
 
 def find_shortest_path(graph, start_id, end_id):
@@ -245,7 +242,6 @@ print(f"Number of connections: {max_connections}")
 
 countId = input("Type the ID for which you want to calculate the number of connections :")
 count_connection = find_connection_count(authorGraph,countId)
-
 if count_connection is None : 
     print ("Count id has no connections")
     print(f"Count id number of connections is : {count_connection}")
@@ -258,7 +254,15 @@ else:
     print(f"Count id number of connections is : {count_connection}")
     print(f"No such ORCID {start_id} exists in the graph.")
     
-    
+    # 2. İster: Kullanıcıdan yazar ID'si al ve kuyruk oluştur
+author_id = input("dugum olusturmak icin ORCID id giriniz: ")
+if author_id in authorGraph.getNodes():
+    priority_queue = create_priority_queue_manual(authorGraph, author_id)
+    print_priority_queue_manual(priority_queue, authorGraph)
+else:
+    print(f"No such ORCID {author_id} exists in the graph.")
+
+
 # 2. İster: Kullanıcıdan yazar ID'si al ve kuyruk oluştur
 author_id = input("dugum olusturmak icin ORCID id giriniz: ")
 if author_id in authorGraph.getNodes():
