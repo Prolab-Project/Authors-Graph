@@ -32,27 +32,44 @@ class Graph:
                     self.nodes[orcid_1]["connections"].append(orcid_2)
                     self.nodes[orcid_2]["connections"].append(orcid_1)
 
-    def writeTxt(self, output_file="graph_output.txt", terminal_limit=10):
+
+    def writeJsonManual(self, output_file="graph_output.json"):
+        # JSON formatına uygun olarak manuel string oluşturma
+        json_str = "{\n"
+
+        # Düğümleri ekle
+        json_str += '  "nodes": [\n'
+        node_entries = []
+        for node_id, node_data in self.nodes.items():
+            connections = [
+                f'"{self.nodes[conn]["name"]}"' if conn in self.nodes else f'"{conn}"'
+                for conn in node_data['connections']
+            ]
+            node_entry = (
+                f'    {{ "orcid": "{node_id}", "name": "{node_data["name"]}", "connections": [{", ".join(connections)}] }}'
+            )
+            node_entries.append(node_entry)
+        json_str += ",\n".join(node_entries) + "\n  ],\n"
+
+        # Kenarları ekle
+        json_str += '  "edges": [\n'
+        edge_entries = []
+        for edge, weight in self.edges.items():
+            edge_entry = (
+                f'    {{ "edge": ["{edge[0]}", "{edge[1]}"], "weight": {weight} }}'
+            )
+            edge_entries.append(edge_entry)
+        json_str += ",\n".join(edge_entries) + "\n  ]\n"
+
+        json_str += "}\n"
+
+        # Dosyaya yaz
         with open(output_file, "w", encoding="utf-8") as file:
-            output = []
+            file.write(json_str)
 
-            output.append("Nodes:\n")
-            for node_id, node_data in self.nodes.items():
-                connections = [
-                    self.nodes[conn]["name"] if conn not in self.nodes else conn
-                    for conn in node_data['connections']
-                ]
-                output.append(f"ORCID: {node_id}, Name: {node_data['name']}, Connections: {connections}\n")
+        print(f"Graph written to JSON file: {output_file}")
 
-            output.append("\nEdge Weights:\n")
-            for edge, weight in self.edges.items():
-                output.append(f"Edge: {edge}, Weight: {weight}\n")
 
-            print("Nodes (limited):")
-            for i, line in enumerate(output):
-              #  if i < terminal_limit:
-                  #  print(line.strip())
-                file.write(line)
 
     def getNodes(self):
         return self.nodes
@@ -227,7 +244,7 @@ for _, row in data.iterrows():
         if coauthor_orcid:
             authorGraph.addEdges(row["author_orcid"], coauthor_orcid)
 
-authorGraph.writeTxt("graph_output.txt", terminal_limit=10)
+authorGraph.writeJsonManual("graph_output.json")
 print("Graf txt dosyasına yazdırıldı: graph_output.txt")
 
 start_orcid = input("Enter the start ORCID: ")
