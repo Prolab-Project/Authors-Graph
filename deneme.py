@@ -3,18 +3,31 @@ from pyvis.network import Network
 
 def create_visualization(graph_data):
     """JSON dosyasından okunan graf verisini görselleştirir"""
-    # Ağ oluştur
+    # Fizik ayarları
+    options = {
+        "physics": {
+            "stabilization": {
+                "enabled": True,
+                "iterations": 1000
+            },
+            "barnesHut": {
+                "gravitationalConstant": -2000,
+                "springConstant": 0.01,
+                "damping": 0.5
+            }
+        }
+    }
+    
     net = Network(
         height="750px",
         width="100%",
-        bgcolor="#ffffff",
-        font_color="black",
+        bgcolor="#000000",
+        font_color="white",
         directed=False
     )
     
-    # Fizik ayarları
-    net.force_atlas_2based()
-    net.show_buttons(filter_=['physics'])
+    # Fizik ayarlarını doğru şekilde uygula
+    net.set_options(json.dumps(options))
     
     # JSON dosyasını oku
     with open(graph_data, 'r', encoding='utf-8') as file:
@@ -23,15 +36,12 @@ def create_visualization(graph_data):
     # Düğümleri ekle
     added_nodes = set()
     for node in data["nodes"]:
-        if len(added_nodes) >= 50:  # Maksimum 50 düğüm göster
-            break
-            
         node_id = node["orcid"]
         if node_id not in added_nodes:
             # Düğüm özelliklerini belirle
             connection_count = len(node["connections"])
             color = "#00ff00" if node_id.startswith("0000-") else "#ff9999"
-            size = 20 + min(connection_count * 2, 40)
+            size = 20 + min(connection_count, 100) * 0.2  # Daha yumuşak bir ölçeklendirme
             
             # Düğümü ekle
             net.add_node(
@@ -39,7 +49,8 @@ def create_visualization(graph_data):
                 label=node["name"],
                 title=f"ORCID: {node_id}\nİsim: {node['name']}\nBağlantı sayısı: {connection_count}",
                 color=color,
-                size=size
+                size=size,
+                mass=1 + connection_count * 0.1  # Büyük düğümlere daha fazla kütle ekle
             )
             added_nodes.add(node_id)
     
