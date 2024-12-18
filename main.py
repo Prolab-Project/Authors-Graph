@@ -202,17 +202,16 @@ for coauthor_list in data["coauthors"].apply(parse_coauthors):
 existing_authors = set(author_id_map.values())
 missing_coauthors = all_coauthors - existing_authors
 
-missing_coauthors_sorted = sorted(missing_coauthors)
+# Sabit bir ID oluşturmak için fonksiyon ve eksik yazarları işleme
+def generate_deterministic_id(author_name):
+    total = 0
+    for i, char in enumerate(author_name):
+        total += (i + 1) * ord(char)  # Her karakterin ASCII değerine pozisyonla ağırlık ver
+    return f"generated-{total % 1000000}"  # Sabit bir uzunluk için modulo kullan
 
-generated_ids = [int(key.split("-")[1]) for key in author_id_map.keys() if key.startswith("generated-")]
-max_generated_id = max(generated_ids, default=0)
-
-next_id = max_generated_id + 1
-
-for coauthor in missing_coauthors_sorted:
-    author_id_map[f"generated-{next_id}"] = coauthor
-    next_id += 1
-
+for coauthor in missing_coauthors:
+    deterministic_id = generate_deterministic_id(coauthor)  # Sabit ID oluşturma
+    author_id_map[deterministic_id] = coauthor
 
 authorGraph = Graph()
 for orcid, author_name in author_id_map.items():
@@ -268,7 +267,6 @@ if author_id in authorGraph.getNodes():
     print_priority_queue_manual(priority_queue, authorGraph)
 else:
     print(f"No such ORCID {author_id} exists in the graph.")
-
 
 # 2. İster: Kullanıcıdan yazar ID'si al ve kuyruk oluştur
 author_id = input("dugum olusturmak icin ORCID id giriniz: ")
