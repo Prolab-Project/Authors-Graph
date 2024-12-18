@@ -202,10 +202,17 @@ for coauthor_list in data["coauthors"].apply(parse_coauthors):
 existing_authors = set(author_id_map.values())
 missing_coauthors = all_coauthors - existing_authors
 
-next_id = len(author_id_map) + 1
-for coauthor in missing_coauthors:
+missing_coauthors_sorted = sorted(missing_coauthors)
+
+generated_ids = [int(key.split("-")[1]) for key in author_id_map.keys() if key.startswith("generated-")]
+max_generated_id = max(generated_ids, default=0)
+
+next_id = max_generated_id + 1
+
+for coauthor in missing_coauthors_sorted:
     author_id_map[f"generated-{next_id}"] = coauthor
     next_id += 1
+
 
 authorGraph = Graph()
 for orcid, author_name in author_id_map.items():
