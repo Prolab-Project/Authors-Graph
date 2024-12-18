@@ -1,0 +1,179 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script src="lib/bindings/utils.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 750px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+             #config {
+                 float: left;
+                 width: 400px;
+                 height: 600px;
+             }
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+            <div id="config"></div>
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0003-0788-1499", "label": "b rajakumar", "shape": "dot", "size": 60, "title": "ORCID: 0000-0003-0788-1499\n\u0130sim: b rajakumar\nBa\u011flant\u0131 say\u0131s\u0131: 20"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-3344-5159", "label": "b. rajakumar", "shape": "dot", "size": 26, "title": "ORCID: 0000-0002-3344-5159\n\u0130sim: b. rajakumar\nBa\u011flant\u0131 say\u0131s\u0131: 3"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-7631-8857", "label": "s. rajakumar", "shape": "dot", "size": 26, "title": "ORCID: 0000-0001-7631-8857\n\u0130sim: s. rajakumar\nBa\u011flant\u0131 say\u0131s\u0131: 3"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-8011-4961", "label": "rajakumar s", "shape": "dot", "size": 24, "title": "ORCID: 0000-0001-8011-4961\n\u0130sim: rajakumar s\nBa\u011flant\u0131 say\u0131s\u0131: 2"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-3429-6925", "label": "rajalakshmi r", "shape": "dot", "size": 24, "title": "ORCID: 0000-0002-3429-6925\n\u0130sim: rajalakshmi r\nBa\u011flant\u0131 say\u0131s\u0131: 2"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-6570-483X", "label": "r. rajalakshmi", "shape": "dot", "size": 20, "title": "ORCID: 0000-0002-6570-483X\n\u0130sim: r. rajalakshmi\nBa\u011flant\u0131 say\u0131s\u0131: 0"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0003-0901-5076", "label": "rajan choudhary", "shape": "dot", "size": 52, "title": "ORCID: 0000-0003-0901-5076\n\u0130sim: rajan choudhary\nBa\u011flant\u0131 say\u0131s\u0131: 16"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-6370-8071", "label": "rajan choudhary", "shape": "dot", "size": 58, "title": "ORCID: 0000-0001-6370-8071\n\u0130sim: rajan choudhary\nBa\u011flant\u0131 say\u0131s\u0131: 19"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-6962-6066", "label": "rajan ghimire", "shape": "dot", "size": 60, "title": "ORCID: 0000-0002-6962-6066\n\u0130sim: rajan ghimire\nBa\u011flant\u0131 say\u0131s\u0131: 22"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-5095-8477", "label": "rajan ghimire", "shape": "dot", "size": 26, "title": "ORCID: 0000-0001-5095-8477\n\u0130sim: rajan ghimire\nBa\u011flant\u0131 say\u0131s\u0131: 3"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-2984-5010", "label": "t guptarajan", "shape": "dot", "size": 60, "title": "ORCID: 0000-0002-2984-5010\n\u0130sim: t guptarajan\nBa\u011flant\u0131 say\u0131s\u0131: 118"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-9851-4047", "label": "rajan gupta", "shape": "dot", "size": 38, "title": "ORCID: 0000-0002-9851-4047\n\u0130sim: rajan gupta\nBa\u011flant\u0131 say\u0131s\u0131: 9"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-4474-5296", "label": "sharma r", "shape": "dot", "size": 32, "title": "ORCID: 0000-0002-4474-5296\n\u0130sim: sharma r\nBa\u011flant\u0131 say\u0131s\u0131: 6"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-9766-8389", "label": "rajan sharma", "shape": "dot", "size": 26, "title": "ORCID: 0000-0001-9766-8389\n\u0130sim: rajan sharma\nBa\u011flant\u0131 say\u0131s\u0131: 3"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-0020-6194", "label": "rajarshi p ghosh", "shape": "dot", "size": 26, "title": "ORCID: 0000-0002-0020-6194\n\u0130sim: rajarshi p ghosh\nBa\u011flant\u0131 say\u0131s\u0131: 3"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0003-2348-6333", "label": "rajarshi p. ghosh", "shape": "dot", "size": 34, "title": "ORCID: 0000-0003-2348-6333\n\u0130sim: rajarshi p. ghosh\nBa\u011flant\u0131 say\u0131s\u0131: 7"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-2381-829X", "label": "r. roy", "shape": "dot", "size": 20, "title": "ORCID: 0000-0002-2381-829X\n\u0130sim: r. roy\nBa\u011flant\u0131 say\u0131s\u0131: 0"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0003-2795-056X", "label": "rajarshi roy", "shape": "dot", "size": 22, "title": "ORCID: 0000-0003-2795-056X\n\u0130sim: rajarshi roy\nBa\u011flant\u0131 say\u0131s\u0131: 1"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-5788-9424", "label": "rajarshi roy", "shape": "dot", "size": 28, "title": "ORCID: 0000-0002-5788-9424\n\u0130sim: rajarshi roy\nBa\u011flant\u0131 say\u0131s\u0131: 4"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-3790-0593", "label": "m. rajasekar", "shape": "dot", "size": 24, "title": "ORCID: 0000-0002-3790-0593\n\u0130sim: m. rajasekar\nBa\u011flant\u0131 say\u0131s\u0131: 2"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-0042-2006", "label": "m. rajasekar", "shape": "dot", "size": 30, "title": "ORCID: 0000-0002-0042-2006\n\u0130sim: m. rajasekar\nBa\u011flant\u0131 say\u0131s\u0131: 5"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-3612-0034", "label": "r. s. gupta", "shape": "dot", "size": 28, "title": "ORCID: 0000-0002-3612-0034\n\u0130sim: r. s. gupta\nBa\u011flant\u0131 say\u0131s\u0131: 4"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-9907-5795", "label": "rajat gupta", "shape": "dot", "size": 48, "title": "ORCID: 0000-0002-9907-5795\n\u0130sim: rajat gupta\nBa\u011flant\u0131 say\u0131s\u0131: 14"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-8959-0251", "label": "rajat gupta", "shape": "dot", "size": 34, "title": "ORCID: 0000-0001-8959-0251\n\u0130sim: rajat gupta\nBa\u011flant\u0131 say\u0131s\u0131: 7"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-7678-1366", "label": "rajat gupta", "shape": "dot", "size": 30, "title": "ORCID: 0000-0001-7678-1366\n\u0130sim: rajat gupta\nBa\u011flant\u0131 say\u0131s\u0131: 5"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-9100-5610", "label": "rajat gupta", "shape": "dot", "size": 28, "title": "ORCID: 0000-0002-9100-5610\n\u0130sim: rajat gupta\nBa\u011flant\u0131 say\u0131s\u0131: 4"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0003-0453-5574", "label": "jainrajat", "shape": "dot", "size": 58, "title": "ORCID: 0000-0003-0453-5574\n\u0130sim: jainrajat\nBa\u011flant\u0131 say\u0131s\u0131: 19"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-7235-0462", "label": "rajat jain", "shape": "dot", "size": 30, "title": "ORCID: 0000-0001-7235-0462\n\u0130sim: rajat jain\nBa\u011flant\u0131 say\u0131s\u0131: 5"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0003-4212-7109", "label": "rajat jain", "shape": "dot", "size": 26, "title": "ORCID: 0000-0003-4212-7109\n\u0130sim: rajat jain\nBa\u011flant\u0131 say\u0131s\u0131: 3"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-1249-9529", "label": "rajat sharma", "shape": "dot", "size": 28, "title": "ORCID: 0000-0002-1249-9529\n\u0130sim: rajat sharma\nBa\u011flant\u0131 say\u0131s\u0131: 4"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-7869-3423", "label": "rajat sharma", "shape": "dot", "size": 24, "title": "ORCID: 0000-0001-7869-3423\n\u0130sim: rajat sharma\nBa\u011flant\u0131 say\u0131s\u0131: 2"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-9542-1929", "label": "rajat singh", "shape": "dot", "size": 24, "title": "ORCID: 0000-0002-9542-1929\n\u0130sim: rajat singh\nBa\u011flant\u0131 say\u0131s\u0131: 2"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-8862-0631", "label": "rajat emanuel singh", "shape": "dot", "size": 24, "title": "ORCID: 0000-0001-8862-0631\n\u0130sim: rajat emanuel singh\nBa\u011flant\u0131 say\u0131s\u0131: 2"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-1541-7162", "label": "rajeev k jha", "shape": "dot", "size": 46, "title": "ORCID: 0000-0002-1541-7162\n\u0130sim: rajeev k jha\nBa\u011flant\u0131 say\u0131s\u0131: 13"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-4677-2810", "label": "r. k. jha", "shape": "dot", "size": 22, "title": "ORCID: 0000-0002-4677-2810\n\u0130sim: r. k. jha\nBa\u011flant\u0131 say\u0131s\u0131: 1"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-5415-5230", "label": "rajeev agrawal", "shape": "dot", "size": 58, "title": "ORCID: 0000-0002-5415-5230\n\u0130sim: rajeev agrawal\nBa\u011flant\u0131 say\u0131s\u0131: 19"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-9158-8329", "label": "rajeev agrawal", "shape": "dot", "size": 38, "title": "ORCID: 0000-0001-9158-8329\n\u0130sim: rajeev agrawal\nBa\u011flant\u0131 say\u0131s\u0131: 9"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0003-2684-1994", "label": "r. k. gupta", "shape": "dot", "size": 60, "title": "ORCID: 0000-0003-2684-1994\n\u0130sim: r. k. gupta\nBa\u011flant\u0131 say\u0131s\u0131: 42"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-9573-0505", "label": "r. gupta", "shape": "dot", "size": 60, "title": "ORCID: 0000-0001-9573-0505\n\u0130sim: r. gupta\nBa\u011flant\u0131 say\u0131s\u0131: 30"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-0327-2795", "label": "r. gupta", "shape": "dot", "size": 46, "title": "ORCID: 0000-0002-0327-2795\n\u0130sim: r. gupta\nBa\u011flant\u0131 say\u0131s\u0131: 13"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-8356-3137", "label": "rajeev gupta", "shape": "dot", "size": 30, "title": "ORCID: 0000-0002-8356-3137\n\u0130sim: rajeev gupta\nBa\u011flant\u0131 say\u0131s\u0131: 5"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-1367-3971", "label": "rajeev jain", "shape": "dot", "size": 60, "title": "ORCID: 0000-0002-1367-3971\n\u0130sim: rajeev jain\nBa\u011flant\u0131 say\u0131s\u0131: 32"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-9014-2843", "label": "rajeev jain", "shape": "dot", "size": 32, "title": "ORCID: 0000-0001-9014-2843\n\u0130sim: rajeev jain\nBa\u011flant\u0131 say\u0131s\u0131: 6"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-8146-0946", "label": "rajeev jain", "shape": "dot", "size": 24, "title": "ORCID: 0000-0001-8146-0946\n\u0130sim: rajeev jain\nBa\u011flant\u0131 say\u0131s\u0131: 2"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-7523-0108", "label": "rajeev kumar", "shape": "dot", "size": 58, "title": "ORCID: 0000-0001-7523-0108\n\u0130sim: rajeev kumar\nBa\u011flant\u0131 say\u0131s\u0131: 19"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-7189-3836", "label": "rajeev kumar", "shape": "dot", "size": 28, "title": "ORCID: 0000-0001-7189-3836\n\u0130sim: rajeev kumar\nBa\u011flant\u0131 say\u0131s\u0131: 4"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-6277-2626", "label": "r. kumar", "shape": "dot", "size": 60, "title": "ORCID: 0000-0002-6277-2626\n\u0130sim: r. kumar\nBa\u011flant\u0131 say\u0131s\u0131: 214"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-0820-5970", "label": "rajeev kumar", "shape": "dot", "size": 30, "title": "ORCID: 0000-0002-0820-5970\n\u0130sim: rajeev kumar\nBa\u011flant\u0131 say\u0131s\u0131: 5"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0002-9929-1914", "label": "rajeev kumar", "shape": "dot", "size": 50, "title": "ORCID: 0000-0002-9929-1914\n\u0130sim: rajeev kumar\nBa\u011flant\u0131 say\u0131s\u0131: 15"}, {"color": "#00ff00", "font": {"color": "black"}, "id": "0000-0001-5545-6919", "label": "rajeev kumar", "shape": "dot", "size": 28, "title": "ORCID: 0000-0001-5545-6919\n\u0130sim: rajeev kumar\nBa\u011flant\u0131 say\u0131s\u0131: 4"}]);
+                  edges = new vis.DataSet([{"from": "0000-0002-3344-5159", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 15", "to": "0000-0003-0788-1499", "value": 15, "width": 8.5}, {"from": "0000-0001-6370-8071", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 7", "to": "0000-0003-0901-5076", "value": 7, "width": 4.5}, {"from": "0000-0001-5095-8477", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 1", "to": "0000-0002-6962-6066", "value": 1, "width": 1.5}, {"from": "0000-0001-9766-8389", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 1", "to": "0000-0002-4474-5296", "value": 1, "width": 1.5}, {"from": "0000-0002-5788-9424", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 1", "to": "0000-0003-2795-056X", "value": 1, "width": 1.5}, {"from": "0000-0002-0042-2006", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 1", "to": "0000-0002-3790-0593", "value": 1, "width": 1.5}, {"from": "0000-0002-3612-0034", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 2", "to": "0000-0002-9907-5795", "value": 2, "width": 2.0}, {"from": "0000-0001-8959-0251", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 2", "to": "0000-0002-9907-5795", "value": 2, "width": 2.0}, {"from": "0000-0001-7678-1366", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 1", "to": "0000-0002-9907-5795", "value": 1, "width": 1.5}, {"from": "0000-0002-9100-5610", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 1", "to": "0000-0002-9907-5795", "value": 1, "width": 1.5}, {"from": "0000-0001-7235-0462", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 4", "to": "0000-0003-0453-5574", "value": 4, "width": 3.0}, {"from": "0000-0001-7235-0462", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 1", "to": "0000-0003-4212-7109", "value": 1, "width": 1.5}, {"from": "0000-0001-7869-3423", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 1", "to": "0000-0002-1249-9529", "value": 1, "width": 1.5}, {"from": "0000-0001-9158-8329", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 6", "to": "0000-0002-5415-5230", "value": 6, "width": 4.0}, {"from": "0000-0001-9573-0505", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 7", "to": "0000-0002-8356-3137", "value": 7, "width": 4.5}, {"from": "0000-0002-0327-2795", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 4", "to": "0000-0002-8356-3137", "value": 4, "width": 3.0}, {"from": "0000-0001-9573-0505", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 1", "to": "0000-0002-0327-2795", "value": 1, "width": 1.5}, {"from": "0000-0001-9014-2843", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 3", "to": "0000-0002-1367-3971", "value": 3, "width": 2.5}, {"from": "0000-0001-8146-0946", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 1", "to": "0000-0002-1367-3971", "value": 1, "width": 1.5}, {"from": "0000-0001-7189-3836", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 8", "to": "0000-0001-7523-0108", "value": 8, "width": 5.0}, {"from": "0000-0001-7523-0108", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 5", "to": "0000-0002-6277-2626", "value": 5, "width": 3.5}, {"from": "0000-0001-7523-0108", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 4", "to": "0000-0002-0820-5970", "value": 4, "width": 3.0}, {"from": "0000-0001-7523-0108", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 2", "to": "0000-0002-9929-1914", "value": 2, "width": 2.0}, {"from": "0000-0001-5545-6919", "title": "Ba\u011flant\u0131 say\u0131s\u0131: 2", "to": "0000-0001-7523-0108", "value": 2, "width": 2.0}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": true,
+        "filter": [
+            "physics"
+        ]
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "forceAtlas2Based": {
+            "avoidOverlap": 0,
+            "centralGravity": 0.01,
+            "damping": 0.4,
+            "gravitationalConstant": -50,
+            "springConstant": 0.08,
+            "springLength": 100
+        },
+        "solver": "forceAtlas2Based",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+                  // if this network requires displaying the configure window,
+                  // put it in its div
+                  options.configure["container"] = document.getElementById("config");
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
