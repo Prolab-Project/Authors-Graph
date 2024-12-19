@@ -45,23 +45,17 @@ class Graph:
         node_entries = []
         for node_id, node_data in self.nodes.items():
             # Bağlantıları JSON formatında yaz
-            connections_str = ", ".join(f'"{self.nodes[conn]["name"]}"' for conn in node_data["connections"])
+            connections_str = ", ".join(f'"{conn}"' for conn in node_data["connections"])
             
-            # Eğer ORCID "generated" ile başlamıyorsa, makale başlıklarını ekle
-            if not node_id.startswith("generated"):
-                papers_str = ", ".join(f'"{paper}"' for paper in node_data["papers"])
-                node_entry = (
-                    f'    {{ "orcid": "{node_id}", '
-                    f'"name": "{node_data["name"]}", '
-                    f'"connections": [{connections_str}], '
-                    f'"papers": [{papers_str}] }}'
-                )
-            else:
-                node_entry = (
-                    f'    {{ "orcid": "{node_id}", '
-                    f'"name": "{node_data["name"]}", '
-                    f'"connections": [{connections_str}] }}'
-                )
+            # Her düğüm için papers listesini ekle (generated ID'li düğümler dahil)
+            papers_str = ", ".join(f'"{paper}"' for paper in node_data["papers"])
+            
+            node_entry = (
+                f'    {{ "orcid": "{node_id}", '
+                f'"name": "{node_data["name"]}", '
+                f'"connections": [{connections_str}], '
+                f'"papers": [{papers_str}] }}'
+            )
             
             node_entries.append(node_entry)
         
@@ -224,19 +218,11 @@ def find_longest_path(graph, start_node):
 file_path = 'data/dataset.xlsx'
 data = pd.read_excel(file_path)
 
-# Her yazar için makale başlıklarını topla
-author_papers = {}
-for _, row in data.iterrows():
-    if pd.notna(row["orcid"]) and pd.notna(row["paper_title"]):
-        orcid = row["orcid"].lower()
-        if orcid not in author_papers:
-            author_papers[orcid] = []
-        if row["paper_title"] not in author_papers[orcid]:  # Tekrarları önle
-            author_papers[orcid].append(row["paper_title"])
-
+# Önce author_id_map'i oluştur
 unique_authors = data[["author_name", "orcid", "paper_title"]].dropna().drop_duplicates()
 author_id_map = {row.orcid.lower(): row.author_name.lower() for _, row in unique_authors.iterrows()}
 
+# Eksik yazarları bul ve generated ID'ler oluştur
 all_coauthors = set()
 for coauthor_list in data["coauthors"].apply(parse_coauthors):
     all_coauthors.update(coauthor_list)
@@ -244,21 +230,43 @@ for coauthor_list in data["coauthors"].apply(parse_coauthors):
 existing_authors = set(author_id_map.values())
 missing_coauthors = all_coauthors - existing_authors
 
-# Sabit bir ID oluşturmak için fonksiyon ve eksik yazarları işleme
 def generate_deterministic_id(author_name):
     total = 0
     for i, char in enumerate(author_name):
-        total += (i + 1) * ord(char)  # Her karakterin ASCII değerine pozisyonla ağırlık ver
-    return f"generated-{total % 1000000}"  # Sabit bir uzunluk için modulo kullan
+        total += (i + 1) * ord(char)
+    return f"generated-{total % 1000000}"
 
 for coauthor in missing_coauthors:
-    deterministic_id = generate_deterministic_id(coauthor)  # Sabit ID oluşturma
+    deterministic_id = generate_deterministic_id(coauthor)
     author_id_map[deterministic_id] = coauthor
 
+# Sonra makale başlıklarını topla
+author_papers = {}
+for _, row in data.iterrows():
+    if pd.notna(row["paper_title"]):
+        # Ana yazar için makaleyi ekle
+        if pd.notna(row["orcid"]):
+            orcid = row["orcid"].lower()
+            if orcid not in author_papers:
+                author_papers[orcid] = []
+            if row["paper_title"] not in author_papers[orcid]:
+                author_papers[orcid].append(row["paper_title"])
+        
+        # Ortak yazarlar için makaleyi ekle
+        if pd.notna(row["coauthors"]):
+            coauthors = parse_coauthors(row["coauthors"])
+            for coauthor in coauthors:
+                coauthor_id = next((k for k, v in author_id_map.items() if v == coauthor.lower()), None)
+                if coauthor_id:
+                    if coauthor_id not in author_papers:
+                        author_papers[coauthor_id] = []
+                    if row["paper_title"] not in author_papers[coauthor_id]:
+                        author_papers[coauthor_id].append(row["paper_title"])
+
+# Graf oluştur ve düğümleri ekle
 authorGraph = Graph()
 for orcid, author_name in author_id_map.items():
     authorGraph.addNode(orcid, author_name)
-    # Yazarın makalelerini ekle
     if orcid in author_papers:
         for paper in author_papers[orcid]:
             authorGraph.addPaper(orcid, paper)
