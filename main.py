@@ -224,6 +224,16 @@ def find_longest_path(graph, start_node):
 file_path = 'data/dataset.xlsx'
 data = pd.read_excel(file_path)
 
+# Her yazar için makale başlıklarını topla
+author_papers = {}
+for _, row in data.iterrows():
+    if pd.notna(row["orcid"]) and pd.notna(row["paper_title"]):
+        orcid = row["orcid"].lower()
+        if orcid not in author_papers:
+            author_papers[orcid] = []
+        if row["paper_title"] not in author_papers[orcid]:  # Tekrarları önle
+            author_papers[orcid].append(row["paper_title"])
+
 unique_authors = data[["author_name", "orcid", "paper_title"]].dropna().drop_duplicates()
 author_id_map = {row.orcid.lower(): row.author_name.lower() for _, row in unique_authors.iterrows()}
 
@@ -248,6 +258,10 @@ for coauthor in missing_coauthors:
 authorGraph = Graph()
 for orcid, author_name in author_id_map.items():
     authorGraph.addNode(orcid, author_name)
+    # Yazarın makalelerini ekle
+    if orcid in author_papers:
+        for paper in author_papers[orcid]:
+            authorGraph.addPaper(orcid, paper)
 
 data["author_orcid"] = data["orcid"].str.lower()
 data["coauthors"] = data["coauthors"].apply(parse_coauthors)
