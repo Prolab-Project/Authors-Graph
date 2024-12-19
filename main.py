@@ -18,7 +18,7 @@ class Graph:
         if orcid not in self.nodes:
             self.nodes[orcid] = {
                 "name": author_name,
-                "connections": []
+                "connections": [author_name]
             }
 
     def addEdges(self, orcid_1, orcid_2, weight=1):
@@ -29,44 +29,63 @@ class Graph:
                     self.edges[edge] += weight
                 else:
                     self.edges[edge] = weight
-                    self.nodes[orcid_1]["connections"].append(orcid_2)
-                    self.nodes[orcid_2]["connections"].append(orcid_1)
+                    if self.nodes[orcid_2]["name"] not in self.nodes[orcid_1]["connections"]:
+                        self.nodes[orcid_1]["connections"].append(self.nodes[orcid_2]["name"])
+                    if self.nodes[orcid_1]["name"] not in self.nodes[orcid_2]["connections"]:
+                        self.nodes[orcid_2]["connections"].append(self.nodes[orcid_1]["name"])
 
 
     def writeJsonManual(self, output_file="graph_output.json"):
-        # JSON formatına uygun olarak manuel string oluşturma
         json_str = "{\n"
-
+        
+        # İsim-ORCID eşleştirmesi için sözlük oluştur (case-insensitive)
+        name_to_orcid = {}
+        for node_id, node_data in self.nodes.items():
+            name_to_orcid[node_data["name"].lower()] = node_id
+        
         # Düğümleri ekle
         json_str += '  "nodes": [\n'
         node_entries = []
         for node_id, node_data in self.nodes.items():
-            connections = [
-                f'"{self.nodes[conn]["name"]}"' if conn in self.nodes else f'"{conn}"'
-                for conn in node_data['connections']
-            ]
+            # Her düğüm için bağlantıları düzgün şekilde işle
+            connections = []
+            for conn_id in node_data['connections']:
+                if conn_id in self.nodes:
+                    # Eğer bağlantı bir ORCID ise, ismi al
+                    connections.append(self.nodes[conn_id]["name"])
+                else:
+                    # Eğer bağlantı bir isim ise, doğrudan kullan
+                    connections.append(conn_id)
+            
+            # Bağlantıları JSON formatında yaz
+            connection_str = ", ".join(f'"{conn}"' for conn in connections)
+            
             node_entry = (
-                f'    {{ "orcid": "{node_id}", "name": "{node_data["name"]}", "connections": [{", ".join(connections)}] }}'
+                f'    {{ "orcid": "{node_id}", '
+                f'"name": "{node_data["name"]}", '
+                f'"connections": [{connection_str}] }}'
             )
             node_entries.append(node_entry)
+        
         json_str += ",\n".join(node_entries) + "\n  ],\n"
-
+        
         # Kenarları ekle
         json_str += '  "edges": [\n'
         edge_entries = []
         for edge, weight in self.edges.items():
             edge_entry = (
-                f'    {{ "edge": ["{edge[0]}", "{edge[1]}"], "weight": {weight} }}'
+                f'    {{ "edge": ["{edge[0]}", "{edge[1]}"], '
+                f'"weight": {weight} }}'
             )
             edge_entries.append(edge_entry)
+        
         json_str += ",\n".join(edge_entries) + "\n  ]\n"
-
         json_str += "}\n"
-
+        
         # Dosyaya yaz
         with open(output_file, "w", encoding="utf-8") as file:
             file.write(json_str)
-
+        
         print(f"Graph written to JSON file: {output_file}")
 
 
@@ -210,7 +229,7 @@ file_path = 'data/dataset.xlsx'
 data = pd.read_excel(file_path)
 
 unique_authors = data[["author_name", "orcid"]].dropna().drop_duplicates()
-author_id_map = {row.orcid: row.author_name.lower() for _, row in unique_authors.iterrows()}
+author_id_map = {row.orcid.lower(): row.author_name.lower() for _, row in unique_authors.iterrows()}
 
 all_coauthors = set()
 for coauthor_list in data["coauthors"].apply(parse_coauthors):
@@ -227,7 +246,7 @@ def generate_deterministic_id(author_name):
     return f"generated-{total % 1000000}"  # Sabit bir uzunluk için modulo kullan
 
 for coauthor in missing_coauthors:
-    deterministic_id = generate_deterministic_id(coauthor)  # Sabit ID oluşturma
+    deterministic_id = generate_deterministic_id(coauthor)  # Sabit ID olu��turma
     author_id_map[deterministic_id] = coauthor
 
 authorGraph = Graph()
@@ -235,7 +254,8 @@ for orcid, author_name in author_id_map.items():
     authorGraph.addNode(orcid, author_name)
 
 data["author_orcid"] = data["orcid"].str.lower()
-data["coauthors"] = data["coauthors"].apply(parse_coauthors)
+data["author_name"] = data["author_name"].str.lower()
+data["coauthors"] = data["coauthors"].apply(lambda x: [name.lower() for name in parse_coauthors(x)])
 
 for _, row in data.iterrows():
     coauthors = row["coauthors"]
@@ -245,7 +265,7 @@ for _, row in data.iterrows():
             authorGraph.addEdges(row["author_orcid"], coauthor_orcid)
 
 authorGraph.writeJsonManual("graph_output.json")
-print("Graf txt dosyasına yazdırıldı: graph_output.txt")
+print("Graf JSON dosyasına yazdırıldı: graph_output.json")
 
 start_orcid = input("Enter the start ORCID: ")
 end_orcid = input("Enter the end ORCID: ")
