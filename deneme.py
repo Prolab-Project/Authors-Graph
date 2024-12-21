@@ -128,8 +128,79 @@ def create_visualization(graph_data):
     <button class="menu-button" onclick="handleClick(7)">7. İster</button>
 </div>
 <script>
+   let lastHighlightedNode = null;
+
     function handleClick(isterId) {
-        alert(`${isterId}. İster tıklandı`);
+        if (isterId === 6) {
+            findAuthorWithMostConnections();
+        } else if (isterId === 5) {
+            findConnectionsByOrcid();
+        } else {
+            alert(`${isterId}. İster tıklandı`);
+        }
+    }
+
+    function findAuthorWithMostConnections() {
+        let maxConnections = 0;
+        let authorWithMostConnections = null;
+        let authorNodeId = null;
+
+        if (!nodes || !network) {
+            alert("Düğümler veya ağ tanımlı değil!");
+            return;
+        }
+
+        nodes.forEach(function(node) {
+            let connectionCount = network.getConnectedNodes(node.id).length;
+            if (connectionCount > maxConnections) {
+                maxConnections = connectionCount;
+                authorWithMostConnections = node.label;
+                authorNodeId = node.id;
+            }
+        });
+
+        if (authorNodeId) {
+            highlightNode(authorNodeId);
+            alert(`En fazla bağlantıya sahip yazar: ${authorWithMostConnections} (${maxConnections} bağlantı)`);
+        }
+    }
+
+    function findConnectionsByOrcid() {
+        let orcid = prompt("Lütfen bir ORCID ID giriniz:");
+        if (!orcid) {
+            alert("Geçersiz ORCID ID!");
+            return;
+        }
+
+        let foundNode = nodes.get(orcid);
+        if (!foundNode) {
+            alert("Bu ORCID ID'ye sahip bir yazar bulunamadı!");
+            return;
+        }
+
+        let connectionCount = network.getConnectedNodes(orcid).length;
+        highlightNode(orcid);
+        alert(`ORCID ID: ${orcid} için toplam bağlantı sayısı: ${connectionCount}`);
+    }
+
+    function highlightNode(nodeId) {
+        // Daha önce vurgulanmış bir düğüm varsa eski rengini geri getir
+        if (lastHighlightedNode) {
+            nodes.update([{ id: lastHighlightedNode, color: "#00ff00" }]);
+        }
+
+        // Yeni düğümü vurgula
+        nodes.update([{ id: nodeId, color: "#ff0000" }]);
+        lastHighlightedNode = nodeId;
+
+        // Kamera o düğüme odaklansın
+        network.focus(nodeId, {
+            scale: 1.5,
+            animation: {
+                duration: 1000,
+                easingFunction: "easeInOutQuad"
+            }
+        });
     }
 </script>
 
