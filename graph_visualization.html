@@ -175,17 +175,158 @@
 <script>
    let lastHighlightedNode = null;
 
-    function handleClick(isterId) {
-        if (isterId === 6) {
+     function handleClick(isterId) {
+        if (isterId === 1) {
+            findShortestPath();
+        } else if (isterId === 6) {
             findAuthorWithMostConnections();
         } else if (isterId === 5) {
             findConnectionsByOrcid();
-        }
-           else if (isterId === 7) {
+        } else if (isterId === 7) {
             findLongestPathFromAuthor();
-          }
-          else {
+        } else {
             alert(`${isterId}. İster tıklandı`);
+        }
+    }
+
+      function findShortestPath() {
+        let startNodeId = prompt("Lütfen başlangıç yazarının ORCID ID'sini giriniz:");
+        if (!startNodeId) {
+            alert("Geçersiz başlangıç ORCID ID!");
+            return;
+        }
+
+        let endNodeId = prompt("Lütfen hedef yazarının ORCID ID'sini giriniz:");
+        if (!endNodeId) {
+            alert("Geçersiz hedef ORCID ID!");
+            return;
+        }
+
+        let foundStartNode = nodes.get(startNodeId);
+        let foundEndNode = nodes.get(endNodeId);
+
+        if (!foundStartNode || !foundEndNode) {
+            alert("Başlangıç veya hedef yazar bulunamadı!");
+            return;
+        }
+
+        // Dijkstra algoritması ile en kısa yolu bul
+        let shortestPath = dijkstra(startNodeId, endNodeId);
+        if (!shortestPath) {
+            alert("A ile B arasında bir yol bulunamadı.");
+            return;
+        }
+
+        // Yolu grafiksel olarak göster
+        highlightPath(shortestPath.path);
+        alert(`A'dan B'ye en kısa yol: ${shortestPath.path.join(" → ")} (Toplam ağırlık: ${shortestPath.totalWeight})`);
+    }
+
+    function dijkstra(startNodeId, endNodeId) {
+        let distances = {};
+        let previous = {};
+        let pq = new PriorityQueue();
+        let visited = new Set();
+
+        // Başlangıç değerlerini ayarla
+        nodes.forEach(node => {
+            distances[node.id] = Infinity;
+            previous[node.id] = null;
+        });
+        distances[startNodeId] = 0;
+        pq.enqueue(startNodeId, 0);
+
+        while (!pq.isEmpty()) {
+            let currentNode = pq.dequeue().element;
+            if (visited.has(currentNode)) continue;
+            visited.add(currentNode);
+
+            // Eğer hedef düğüme ulaşıldıysa
+            if (currentNode === endNodeId) {
+                let path = [];
+                let totalWeight = distances[endNodeId];
+                while (currentNode) {
+                    path.unshift(currentNode);
+                    currentNode = previous[currentNode];
+                }
+                return { path, totalWeight };
+            }
+
+            // Komşuları işle
+            let neighbors = network.getConnectedEdges(currentNode);
+            neighbors.forEach(edgeId => {
+                let edge = edges.get(edgeId);
+                let neighbor = edge.from === currentNode ? edge.to : edge.from;
+
+                if (!visited.has(neighbor)) {
+                    let newDist = distances[currentNode] + (edge.value || 1); // Kenar ağırlığı
+                    if (newDist < distances[neighbor]) {
+                        distances[neighbor] = newDist;
+                        previous[neighbor] = currentNode;
+                        pq.enqueue(neighbor, newDist);
+                    }
+                }
+            });
+        }
+
+        return null; // Eğer hedef düğüme ulaşılamazsa
+    }
+
+    function highlightPath(path) {
+        // Tüm kenar renklerini eski haline döndür
+        edges.forEach(edge => {
+            edges.update({ id: edge.id, color: { color: "#848484" } });
+        });
+
+        // En kısa yoldaki kenarları kırmızı yap
+        for (let i = 0; i < path.length - 1; i++) {
+            let source = path[i];
+            let target = path[i + 1];
+
+            // Kenarı bul ve kırmızıya boya
+            edges.forEach(edge => {
+                if ((edge.from === source && edge.to === target) || (edge.from === target && edge.to === source)) {
+                    edges.update({ id: edge.id, color: { color: "#ff0000" } });
+                }
+            });
+        }
+
+        // Ağın merkezlenmesi
+        network.fit({
+            nodes: path,
+            animation: {
+                duration: 1500,
+                easingFunction: "easeInOutQuad"
+            }
+        });
+    }
+
+    class PriorityQueue {
+        constructor() {
+            this.items = [];
+        }
+
+        enqueue(element, priority) {
+            let newItem = { element, priority };
+            let added = false;
+
+            for (let i = 0; i < this.items.length; i++) {
+                if (this.items[i].priority > newItem.priority) {
+                    this.items.splice(i, 0, newItem);
+                    added = true;
+                    break;
+                }
+            }
+
+            if (!added) this.items.push(newItem);
+        }
+
+        dequeue() {
+            return this.items.shift();
+        }
+
+        isEmpty() {
+            return this.items.length === 0;
         }
     }
 
