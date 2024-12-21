@@ -180,10 +180,54 @@
             findAuthorWithMostConnections();
         } else if (isterId === 5) {
             findConnectionsByOrcid();
-        } else {
+        }
+           else if (isterId === 7) {
+            findLongestPathFromAuthor();
+          }
+          else {
             alert(`${isterId}. İster tıklandı`);
         }
     }
+
+    function findLongestPathFromAuthor() {
+    let startNodeId = prompt("Lütfen bir ORCID ID giriniz:");
+    if (!startNodeId) {
+        alert("Geçersiz ORCID ID!");
+        return;
+    }
+
+    let foundNode = nodes.get(startNodeId);
+    if (!foundNode) {
+        alert("Bu ORCID ID'ye sahip bir yazar bulunamadı!");
+        return;
+    }
+
+    let visited = new Set();
+    let longestPath = [];
+
+    function dfs(nodeId, path) {
+        visited.add(nodeId);
+        path.push(nodeId);
+
+        let neighbors = network.getConnectedNodes(nodeId);
+        neighbors.forEach(neighbor => {
+            if (!visited.has(neighbor)) {
+                dfs(neighbor, path);
+            }
+        });
+
+        // Eğer bu yol en uzunu ise güncelle
+        if (path.length > longestPath.length) {
+            longestPath = [...path];
+        }
+
+        path.pop(); // Geriye dön
+        visited.delete(nodeId);
+    }
+
+    dfs(startNodeId, []);
+    alert(`ORCID ID: ${startNodeId} için en uzun yol: ${longestPath.join(" → ")} (Uzunluk: ${longestPath.length})`);
+}
 
     function findAuthorWithMostConnections() {
         let maxConnections = 0;
