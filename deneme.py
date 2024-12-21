@@ -12,21 +12,23 @@ def create_visualization(graph_data):
         directed=False
     )
     
-    # Fizik ayarları
     options = {
-        "physics": {
-            "stabilization": {
-                "enabled": True,
-                "iterations": 1000
-            },
-            "barnesHut": {
-                "gravitationalConstant": -2000,
-                "springConstant": 0.01,
-                "damping": 0.5
-            }
+    "physics": {
+        "enabled": True,  # Fizik motorunu etkinleştir
+        "stabilization": {
+            "enabled": True,
+            "iterations": 150  # Stabilizasyon iterasyon sayısı
+        },
+        "barnesHut": {
+            "gravitationalConstant": -3000,  # Çekim kuvveti
+            "centralGravity": 0.4,  # Merkezi çekim
+            "springLength": 10,  # Yay uzunluğu
+            "springConstant": 0.1,  # Yay sertliği
+            "damping": 0.2  # Sönümleme oranı
         }
     }
-    
+}
+
     net.set_options(json.dumps(options))
     
     with open(graph_data, 'r', encoding='utf-8') as file:
