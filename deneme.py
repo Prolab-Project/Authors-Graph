@@ -127,23 +127,114 @@ def create_visualization(graph_data):
     <button class="menu-button" onclick="handleClick(6)">6. İster</button>
     <button class="menu-button" onclick="handleClick(7)">7. İster</button>
 </div>
+
+  <!-- Kuyruk Barı -->
+    <div id="queueBar" style="display: none; position: fixed; bottom: 0; width: 100%; background-color: #f0f0f0; border-top: 2px solid #ccc; padding: 10px; box-shadow: 0 -2px 5px rgba(0,0,0,0.2);">
+        <div id="queueContent" style="overflow-y: auto; max-height: 150px; margin-bottom: 10px;"></div>
+        <button onclick="closeQueueBar()" style="float: right; background-color: #ff5c5c; color: white; border: none; padding: 10px 20px; cursor: pointer;">İptal</button>
+    </div>
+
 <script>
    let lastHighlightedNode = null;
 
-     function handleClick(isterId) {
+    function handleClick(isterId) {
         if (isterId === 1) {
             findShortestPath();
-        } else if (isterId === 6) {
-            findAuthorWithMostConnections();
+        } else if (isterId === 2) {
+            handleCooperationQueue();
         } else if (isterId === 5) {
             findConnectionsByOrcid();
+        } else if (isterId === 6) {
+            findAuthorWithMostConnections();
         } else if (isterId === 7) {
             findLongestPathFromAuthor();
         } else {
             alert(`${isterId}. İster tıklandı`);
         }
     }
+    function handleCooperationQueue() {
+    let authorId = prompt("Lütfen A yazarının ORCID ID'sini giriniz:");
+    if (!authorId) {
+        alert("Geçersiz ORCID ID!");
+        return;
+    }
 
+    let foundAuthor = nodes.get(authorId);
+    if (!foundAuthor) {
+        alert("Bu ORCID ID'ye sahip bir yazar bulunamadı!");
+        return;
+    }
+
+    // İşbirliği yaptığı yazarları bul
+    let collaborators = network.getConnectedNodes(authorId);
+    if (collaborators.length === 0) {
+        alert("Bu yazarın işbirliği yaptığı başka yazar bulunamadı!");
+        return;
+    }
+
+    // Kuyruk işlemlerini göstermek için barı aç
+    const queueBar = document.getElementById("queueBar");
+    const queueContent = document.getElementById("queueContent");
+    queueContent.innerHTML = ""; // Önceki içerikleri temizle
+    queueBar.style.display = "block";
+
+    // Kuyruğu oluştur
+    let cooperationQueue = new CooperationPriorityQueue();
+    collaborators.forEach(collaboratorId => {
+        let collaboratorNode = nodes.get(collaboratorId);
+        if (collaboratorNode) {
+            cooperationQueue.enqueue(collaboratorNode, collaboratorNode.value); // Düğüm ağırlığını kullan
+            const listItem = document.createElement("div");
+            listItem.innerText = `Eklendi: ${collaboratorNode.label} (Ağırlık: ${collaboratorNode.value})`;
+            queueContent.appendChild(listItem);
+        }
+    });
+
+    // Kuyruktan çıkarma işlemleri (görsel olarak)
+    setTimeout(() => {
+        while (!cooperationQueue.isEmpty()) {
+            let dequeued = cooperationQueue.dequeue();
+            const listItem = document.createElement("div");
+            listItem.innerText = `Çıkarıldı: ${dequeued.element.label} (Ağırlık: ${dequeued.priority})`;
+            queueContent.appendChild(listItem);
+        }
+    }, 1000);
+}
+
+function closeQueueBar() {
+    const queueBar = document.getElementById("queueBar");
+    queueBar.style.display = "none";
+}
+
+// Cooperation Priority Queue sınıfı
+class CooperationPriorityQueue {
+    constructor() {
+        this.items = [];
+    }
+
+    enqueue(element, priority) {
+        let newItem = { element, priority };
+        let added = false;
+
+        for (let i = 0; i < this.items.length; i++) {
+            if (this.items[i].priority < newItem.priority) {
+                this.items.splice(i, 0, newItem);
+                added = true;
+                break;
+            }
+        }
+
+        if (!added) this.items.push(newItem);
+    }
+
+    dequeue() {
+        return this.items.shift();
+    }
+
+    isEmpty() {
+        return this.items.length === 0;
+    }
+}
       function findShortestPath() {
         let startNodeId = prompt("Lütfen başlangıç yazarının ORCID ID'sini giriniz:");
         if (!startNodeId) {
