@@ -52,7 +52,8 @@ class Graph:
                 # Aynı ORCID'e sahip farklı isim kontrolü
                 if orcid_1 == orcid_2 and self.nodes[orcid_1]["name"] != self.nodes[orcid_2]["name"]:
                     return  # Aynı ORCID farklı isim varsa bağlantı ekleme
-                
+                if self.nodes[orcid_1]["name"] == self.nodes[orcid_2]["name"]:
+                    return
                 edge = (min(orcid_1, orcid_2), max(orcid_1, orcid_2))
                 if edge in self.edges:
                     self.edges[edge] += weight
@@ -60,6 +61,7 @@ class Graph:
                     self.edges[edge] = weight
                     self.nodes[orcid_1]["connections"].append(orcid_2)
                     self.nodes[orcid_2]["connections"].append(orcid_1)
+
 
 
 
