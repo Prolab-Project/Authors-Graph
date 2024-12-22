@@ -494,7 +494,7 @@ class CooperationPriorityQueue {
 
 def main():
     try:
-        create_visualization("graph_output.json")
+        create_visualization("cleaned_graph_output.json")
         print("Görselleştirme graph_visualization.html dosyasına kaydedildi.")
     except Exception as e:
         print(f"Görselleştirme hatası: {str(e)}")

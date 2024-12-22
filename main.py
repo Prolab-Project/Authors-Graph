@@ -9,15 +9,26 @@ def parse_coauthors(coauthor_str):
     coauthor_list = [x.strip().strip("'").strip('"').lower() for x in coauthor_str.split(",")]
     return coauthor_list
 
-def clean_connections(graph):
-        for orcid, node_data in graph.getNodes().items():
-            if not orcid.startswith("generated"):
-                author_name = node_data["name"]
-                # Bağlantılar arasında yazarın ismiyle eşleşenleri temizle
-                node_data["connections"] = [
-                    conn for conn in node_data["connections"]
-                    if graph.getNodes()[conn]["name"] != author_name
-                ]
+def clean_connections(graph, data):
+    # ORCID'ler için birden fazla isim olup olmadığını kontrol et
+    orcid_to_names = {}
+    for _, row in data.iterrows():
+        orcid = row["orcid"].lower()
+        name = row["author_name"].strip().lower()
+        if orcid not in orcid_to_names:
+            orcid_to_names[orcid] = set()
+        orcid_to_names[orcid].add(name)
+    
+    # Bağlantıları temizle
+    for orcid, node_data in graph.getNodes().items():
+        if not orcid.startswith("generated"):
+            valid_names = orcid_to_names.get(orcid, set())
+            node_data["connections"] = [
+                conn for conn in node_data["connections"]
+                if graph.getNodes()[conn]["name"] not in valid_names  # Aynı ORCID'deki isimler bağlantılarda olmasın
+            ]
+
+
 class Graph:
     def __init__(self):
         self.nodes = {}
@@ -36,8 +47,12 @@ class Graph:
             self.nodes[orcid]["papers"].append(paper_title)
 
     def addEdges(self, orcid_1, orcid_2, weight=1):
-        if orcid_1 != orcid_2:
+        if orcid_1 != orcid_2:  # Kendisiyle bağlantı kurmasın
             if orcid_1 in self.nodes and orcid_2 in self.nodes:
+                # Aynı ORCID'e sahip farklı isim kontrolü
+                if orcid_1 == orcid_2 and self.nodes[orcid_1]["name"] != self.nodes[orcid_2]["name"]:
+                    return  # Aynı ORCID farklı isim varsa bağlantı ekleme
+                
                 edge = (min(orcid_1, orcid_2), max(orcid_1, orcid_2))
                 if edge in self.edges:
                     self.edges[edge] += weight
@@ -45,6 +60,8 @@ class Graph:
                     self.edges[edge] = weight
                     self.nodes[orcid_1]["connections"].append(orcid_2)
                     self.nodes[orcid_2]["connections"].append(orcid_1)
+
+
 
     def writeJsonManual(self, output_file="graph_output.json"):
         json_str = "{\n"
@@ -54,7 +71,8 @@ class Graph:
         node_entries = []
         for node_id, node_data in self.nodes.items():
             # Bağlantıları JSON formatında yaz
-            connections_str = ", ".join(f'"{self.nodes[conn]["name"]}"' for conn in node_data["connections"])
+            connections_str = ", ".join(f'"{conn}"' for conn in node_data["connections"])
+
 
             # Eğer ORCID "generated" ile başlamıyorsa, makale başlıklarını ekle
             if not node_id.startswith("generated"):
@@ -94,6 +112,7 @@ class Graph:
             file.write(json_str)
 
         print(f"Graph written to JSON file: {output_file}")
+        
 
     def getNodes(self):
         return self.nodes
@@ -281,7 +300,7 @@ for _, row in data.iterrows():
             authorGraph.addEdges(row["author_orcid"], coauthor_orcid)
 
 # Bağlantıları temizle
-clean_connections(authorGraph)
+clean_connections(authorGraph, data)
 
 # Temizlenmiş grafı JSON'a yaz
 authorGraph.writeJsonManual("cleaned_graph_output.json")
