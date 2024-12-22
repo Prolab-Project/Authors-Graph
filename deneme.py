@@ -130,6 +130,7 @@ def create_visualization(graph_data):
     <button class="menu-button" onclick="handleClick(7)">7. İster</button>
 </div>
 
+<div id="shortestPathsTable"></div>
   <!-- Kuyruk Barı -->
     <div id="queueBar" style="display: none; position: fixed; bottom: 0; width: 100%; background-color: #f0f0f0; border-top: 2px solid #ccc; padding: 10px; box-shadow: 0 -2px 5px rgba(0,0,0,0.2);">
         <div id="queueContent" style="overflow-y: auto; max-height: 150px; margin-bottom: 10px;"></div>
@@ -139,21 +140,101 @@ def create_visualization(graph_data):
 <script>
    let lastHighlightedNode = null;
 
-    function handleClick(isterId) {
-        if (isterId === 1) {
-            findShortestPath();
-        } else if (isterId === 2) {
-            handleCooperationQueue();
-        } else if (isterId === 5) {
-            findConnectionsByOrcid();
-        } else if (isterId === 6) {
-            findAuthorWithMostConnections();
-        } else if (isterId === 7) {
-            findLongestPathFromAuthor();
-        } else {
-            alert(`${isterId}. İster tıklandı`);
-        }
+function handleClick(isterId) {
+    if (isterId === 1) {
+        findShortestPath();
+    } else if (isterId === 2) {
+        handleCooperationQueue();
+    } else if (isterId === 4) { // 4. İster buraya eklendi
+        handleShortestPathsFromAuthor();
+    } else if (isterId === 5) {
+        findConnectionsByOrcid();
+    } else if (isterId === 6) {
+        findAuthorWithMostConnections();
+    } else if (isterId === 7) {
+        findLongestPathFromAuthor();
+    } else {
+        alert(`${isterId}. İster tıklandı`);
     }
+}
+function closeShortestPathsTable() {
+    let tableContainer = document.getElementById("shortestPathsTable");
+    tableContainer.style.display = "none"; // Tabloyu görünmez yap
+    tableContainer.querySelector("tbody").innerHTML = ""; // Tablo içeriğini temizle
+}
+
+
+    function handleShortestPathsFromAuthor() {
+    let authorId = prompt("Lütfen A yazarının ORCID ID'sini giriniz:");
+    if (!authorId) {
+        alert("Geçersiz ORCID ID!");
+        return;
+    }
+
+    let foundAuthor = nodes.get(authorId);
+    if (!foundAuthor) {
+        alert("Bu ORCID ID'ye sahip bir yazar bulunamadı!");
+        return;
+    }
+
+    // İşbirliği grafiği oluştur
+    let graph = {};
+    let queue = [authorId];
+    let visited = new Set();
+
+    while (queue.length > 0) {
+        let current = queue.shift();
+        if (visited.has(current)) continue;
+
+        visited.add(current);
+        let neighbors = network.getConnectedNodes(current);
+        graph[current] = [];
+
+        neighbors.forEach(neighbor => {
+            if (!visited.has(neighbor)) {
+                queue.push(neighbor);
+                graph[current].push({ id: neighbor, weight: edges.get(network.getConnectedEdges(current).find(edgeId => edges.get(edgeId).to === neighbor || edges.get(edgeId).from === neighbor)).value || 1 });
+            }
+        });
+    }
+
+    // En kısa yolları hesapla
+    let distances = {};
+    let previous = {};
+    let unvisited = new Set(Object.keys(graph));
+    let tableContainer = document.getElementById("shortestPathsTable");
+    tableContainer.innerHTML = "<table><tr><th>Düğüm</th><th>Mesafe</th><th>Önceki</th></tr></table>";
+
+    Object.keys(graph).forEach(node => {
+        distances[node] = Infinity;
+        previous[node] = null;
+    });
+    distances[authorId] = 0;
+
+    while (unvisited.size > 0) {
+        let currentNode = Array.from(unvisited).reduce((a, b) => distances[a] < distances[b] ? a : b);
+        unvisited.delete(currentNode);
+
+        graph[currentNode].forEach(neighbor => {
+            let newDist = distances[currentNode] + neighbor.weight;
+            if (newDist < distances[neighbor.id]) {
+                distances[neighbor.id] = newDist;
+                previous[neighbor.id] = currentNode;
+            }
+        });
+
+        // Tabloyu güncelle
+        let table = tableContainer.querySelector("table");
+        table.innerHTML = "<tr><th>Düğüm</th><th>Mesafe</th><th>Önceki</th></tr>";
+        Object.keys(distances).forEach(node => {
+            let row = document.createElement("tr");
+            row.innerHTML = `<td>${node}</td><td>${distances[node] === Infinity ? "∞" : distances[node]}</td><td>${previous[node] || "-"}</td>`;
+            table.appendChild(row);
+        });
+    }
+
+    alert("En kısa yollar hesaplandı ve tablo güncellendi!");
+}
     function handleCooperationQueue() {
     let authorId = prompt("Lütfen A yazarının ORCID ID'sini giriniz:");
     if (!authorId) {
