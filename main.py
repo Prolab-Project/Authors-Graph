@@ -74,6 +74,7 @@ class Graph:
             connections_str = ", ".join(f'"{conn}"' for conn in node_data["connections"])
 
 
+
             # Eğer ORCID "generated" ile başlamıyorsa, makale başlıklarını ekle
             if not node_id.startswith("generated"):
                 papers_str = ", ".join(f'"{paper}"' for paper in node_data["papers"])
@@ -354,5 +355,5 @@ if author_id in authorGraph.getNodes():
     priority_queue = create_priority_queue_manual(authorGraph, author_id)
     print_priority_queue_manual(priority_queue, authorGraph)
 else:
-    print(f"No such ORCID {author_id} exists in the graph.")
+    print(f"No such ORCID {author_id} exists in the graph")
 
