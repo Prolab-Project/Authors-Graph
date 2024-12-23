@@ -75,6 +75,13 @@ def create_visualization(graph_data):
     # CSS ve düğmeleri ekle
     style = """
     <style>
+        body {
+        background-color: #000000; /* Tüm sayfa arka planını siyah yap */
+        margin: 0; /* Kenarlardaki boşlukları sıfırla */
+        padding: 0;
+        overflow: hidden; /* Taşan içeriği gizle */
+    }
+
         #mynetwork {
             width: 85% !important;
             height: 750px !important;
@@ -94,6 +101,15 @@ def create_visualization(graph_data):
     padding: 10px;
     box-sizing: border-box;
     z-index: 9999; /* Üstte gösterim */
+}
+
+    #info-panel {
+        width: 15%; /* Soldaki bilgi panelinin genişliği */
+        height: 100vh;
+        position: fixed;
+        left: 0;
+        top: 0;
+        background-color: #1a1a1a;
 }
 
 .menu-button {
@@ -130,12 +146,50 @@ def create_visualization(graph_data):
     <button class="menu-button" onclick="handleClick(7)">7. İster</button>
 </div>
 
+        <style>
+            #mynetwork {
+                width: 85% !important;
+                height: 750px !important;
+                float: right !important;
+            }
+            #info-panel {
+                width: 15%;
+                height: 100vh;
+                position: fixed;
+                left: 0;
+                top: 0;
+                background-color: #1a1a1a;
+                color: white;
+                padding: 20px;
+                box-sizing: border-box;
+                overflow-y: auto;
+                z-index: 9999;
+            }
+            #info-content {
+                font-size: 14px;
+                line-height: 1.5;
+            }
+        </style>
+        </head>
+        '''
+    )
+
 <div id="shortestPathsTable"></div>
   <!-- Kuyruk Barı -->
     <div id="queueBar" style="display: none; position: fixed; bottom: 0; width: 100%; background-color: #f0f0f0; border-top: 2px solid #ccc; padding: 10px; box-shadow: 0 -2px 5px rgba(0,0,0,0.2);">
         <div id="queueContent" style="overflow-y: auto; max-height: 150px; margin-bottom: 10px;"></div>
         <button onclick="closeQueueBar()" style="float: right; background-color: #ff5c5c; color: white; border: none; padding: 10px 20px; cursor: pointer;">İptal</button>
     </div>
+
+    
+        <body>
+        <div id="info-panel">
+            <h3>Yazar Bilgileri</h3>
+            <div id="info-content">
+                Bir düğüme tıklayın...
+            </div>
+        </div>
+        '''
 
 <script>
    let lastHighlightedNode = null;
@@ -568,8 +622,27 @@ class CooperationPriorityQueue {
     # HTML içeriğini güncelle
     html_content = html_content.replace('</head>', f'{style}</head>')
     html_content = html_content.replace('<body>', f'<body>{buttons}')
+    html_content = html_content.replace('</body>', '''
+    <script>
+        network.on("click", function(properties) {
+            const nodeId = properties.nodes[0];
+            if (nodeId) {
+                const node = nodes.get(nodeId);
+                const infoContent = document.getElementById("info-content");
+                infoContent.innerHTML = `
+                    <p><strong>ORCID:</strong> ${node.id}</p>
+                    <p><strong>İsim:</strong> ${node.label}</p>
+                    <p><strong>Bağlantı Sayısı:</strong> ${node.value}</p>
+                `;
+            } else {
+                document.getElementById("info-content").innerHTML = "Bir düğüme tıklayın...";
+            }
+        });
+    </script>
+    </body>
+    ''')
     
-    # Güncellenmiş HTML'i kaydet
+   # Güncellenmiş HTML'i kaydet
     with open("graph_visualization.html", "w", encoding="utf-8") as file:
         file.write(html_content)
 
