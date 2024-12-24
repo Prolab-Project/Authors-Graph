@@ -48,7 +48,8 @@ def create_visualization(graph_data):
                 title=f"ORCID: {node_id}\nİsim: {node['name']}\nBağlantı sayısı: {connection_count}",
                 color=color,
                 size=size,
-                mass=1 + connection_count * 0.1
+                mass=1 + connection_count * 0.1,
+                value=connection_count
             )
             added_nodes.add(node_id)
     
@@ -104,13 +105,20 @@ def create_visualization(graph_data):
 }
 
     #info-panel {
-        width: 15%; /* Soldaki bilgi panelinin genişliği */
+        width: 15%;
         height: 100vh;
         position: fixed;
         left: 0;
         top: 0;
         background-color: #1a1a1a;
-}
+        color: white;
+        padding: 20px;
+        box-sizing: border-box;
+        overflow-y: auto;
+        z-index: 9999;
+        resize: horizontal;
+        overflow: auto;
+    }
 
 .menu-button {
     width: 90%; /* Düğmelerin genişliği */
@@ -643,7 +651,7 @@ class CooperationPriorityQueue {
                 infoContent.innerHTML = `
                     <p><strong>ORCID:</strong> ${node.id}</p>
                     <p><strong>İsim:</strong> ${node.label}</p>
-                    <p><strong>Bağlantı Sayısı:</strong> ${node.value}</p>
+                    <p><strong>Bağlantı Sayısı:</strong> ${node.value || 0}</p>
                 `;
             } else {
                 document.getElementById("info-content").innerHTML = "Bir düğüme tıklayın...";
