@@ -45,7 +45,7 @@ def create_visualization(graph_data):
             net.add_node(
                 node_id,
                 label=node["name"],
-                title=f"ORCID: {node_id}\nİsim: {node['name']}\nBağlantı sayısı: {connection_count}",
+                title=f"ORCID: {node_id}\nİsim: {node['name']}\nBağlantı sayısı: {connection_count+1}",
                 color=color,
                 size=size,
                 mass=1 + connection_count * 0.1,
@@ -648,11 +648,27 @@ class CooperationPriorityQueue {
             if (nodeId) {
                 const node = nodes.get(nodeId);
                 const infoContent = document.getElementById("info-content");
+
+                // Düğümün bağlantı sayısını hesapla
+                const connectionCount = network.getConnectedNodes(nodeId).length;
+                
+                // JSON'dan papers dizisini al
+                let papersList = '<li>Yok</li>';
+                if (node && node.papers && Array.isArray(node.papers) && node.papers.length > 0) {
+                    papersList = node.papers.map(paper => `<li>${paper}</li>`).join('');
+                }
+
                 infoContent.innerHTML = `
                     <p><strong>ORCID:</strong> ${node.id}</p>
                     <p><strong>İsim:</strong> ${node.label}</p>
-                    <p><strong>Bağlantı Sayısı:</strong> ${node.value || 0}</p>
+                    <p><strong>Bağlantı Sayısı:</strong> ${connectionCount}</p>
+                    <p><strong>Makaleler:</strong></p>
+                    <ul>${papersList}</ul>
                 `;
+
+                // Hata ayıklama için konsola yazdır
+                console.log("Seçilen düğüm:", node);
+                console.log("Makaleler:", node.papers);
             } else {
                 document.getElementById("info-content").innerHTML = "Bir düğüme tıklayın...";
             }

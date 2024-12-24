@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request, render_template
 import pandas as pd
 import sys
+import json
 
 def parse_coauthors(coauthor_str):
     if pd.isna(coauthor_str):
@@ -18,15 +19,16 @@ def clean_connections(graph, data):
         if orcid not in orcid_to_names:
             orcid_to_names[orcid] = set()
         orcid_to_names[orcid].add(name)
-    
+
     # Bağlantıları temizle
-    for orcid, node_data in graph.getNodes().items():
+    for orcid, node_data in graph.nodes.items():  # getNodes() yerine nodes
         if not orcid.startswith("generated"):
             valid_names = orcid_to_names.get(orcid, set())
             node_data["connections"] = [
                 conn for conn in node_data["connections"]
-                if graph.getNodes()[conn]["name"] not in valid_names  # Aynı ORCID'deki isimler bağlantılarda olmasın
+                if graph.nodes[conn]["name"] not in valid_names  # Aynı ORCID'deki isimler bağlantılarda olmasın
             ]
+
 
 
 class Graph:
@@ -66,67 +68,51 @@ class Graph:
 
 
     def writeJsonManual(self, output_file="graph_output.json"):
-        json_str = "{\n"
+        import json
+ 
+        graph_data = {
+            "nodes": [],
+            "edges": []
+        }
 
         # Düğümleri ekle
-        json_str += '  "nodes": [\n'
-        node_entries = []
         for node_id, node_data in self.nodes.items():
-            # Bağlantıları JSON formatında yaz
-            connections_str = ", ".join(f'"{conn}"' for conn in node_data["connections"])
-
-
-
+            node_entry = {
+                "orcid": node_id,
+                "name": node_data["name"],
+                "connections": [self.nodes[conn]["name"] for conn in node_data["connections"]]
+            }
             # Eğer ORCID "generated" ile başlamıyorsa, makale başlıklarını ekle
             if not node_id.startswith("generated"):
-                papers_str = ", ".join(f'"{paper}"' for paper in node_data["papers"])
-                node_entry = (
-                    f'    {{ "orcid": "{node_id}", '
-                    f'"name": "{node_data["name"]}", '
-                    f'"connections": [{connections_str}], '
-                    f'"papers": [{papers_str}] }}'
-                )
-            else:
-                node_entry = (
-                    f'    {{ "orcid": "{node_id}", '
-                    f'"name": "{node_data["name"]}", '
-                    f'"connections": [{connections_str}] }}'
-                )
+                node_entry["papers"] = node_data["papers"]
 
-            node_entries.append(node_entry)
-
-        json_str += ",\n".join(node_entries) + "\n  ],\n"
+            graph_data["nodes"].append(node_entry)
 
         # Kenarları ekle
-        json_str += '  "edges": [\n'
-        edge_entries = []
         for edge, weight in self.edges.items():
-            edge_entry = (
-                f'    {{ "edge": ["{edge[0]}", "{edge[1]}"], '
-                f'"weight": {weight} }}'
-            )
-            edge_entries.append(edge_entry)
+            edge_entry = {
+                "edge": list(edge),
+                "weight": weight
+            }
+            graph_data["edges"].append(edge_entry)
 
-        json_str += ",\n".join(edge_entries) + "\n  ]\n"
-        json_str += "}\n"
-
-        # Dosyaya yaz
+        # JSON'u dosyaya yaz
         with open(output_file, "w", encoding="utf-8") as file:
-            file.write(json_str)
+            json.dump(graph_data, file, ensure_ascii=False, indent=4)
 
         print(f"Graph written to JSON file: {output_file}")
         
 
-    def getNodes(self):
+def getNodes(self):
         return self.nodes
 
-    def get_outgoing_edges(self, node):
+def get_outgoing_edges(self, node):
         if node in self.nodes:
             return self.nodes[node]["connections"]
         return []
 
 
-    def value(self, from_node, to_node):
+def value(self, from_node, to_node):
         edge = (min(from_node, to_node), max(from_node, to_node))
         return self.edges.get(edge, float('inf'))
 
