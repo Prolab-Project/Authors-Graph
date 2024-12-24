@@ -230,21 +230,19 @@ function handleClick(isterId) {
         findShortestPath();
     } else if (isterId === 2) {
         handleCooperationQueue();
-    } else if (isterId === 4) { // 4. İster buraya eklendi
+    } else if (isterId === 4) {
         handleShortestPathsFromAuthor();
     } else if (isterId === 5) {
         findConnectionsByOrcid();
-    } else if (isterId === 6) {
+    } else if (isterId === 6) { 
         findAuthorWithMostConnections();
     } else if (isterId === 7) {
         findLongestPathFromAuthor();
-    } else {
-        alert(`${isterId}. İster tıklandı`);
     }
 }
 function closeShortestPathsTable() {
     let tableContainer = document.getElementById("shortestPathsTable");
-    tableContainer.style.display = "none"; // Tabloyu görünmez yap
+    tableContainer.style.display = "none"; // Tabloyu g��rünmez yap
     tableContainer.querySelector("tbody").innerHTML = ""; // Tablo içeriğini temizle
 }
 
@@ -321,7 +319,7 @@ function closeShortestPathsTable() {
     alert("En kısa yollar hesaplandı ve tablo güncellendi!");
 }
     function handleCooperationQueue() {
-    let authorId = prompt("Lütfen A yazarının ORCID ID'sini giriniz:");
+    let authorId = prompt("Lütfen yazarın ORCID ID'sini giriniz:");
     if (!authorId) {
         alert("Geçersiz ORCID ID!");
         return;
@@ -340,42 +338,269 @@ function closeShortestPathsTable() {
         return;
     }
 
-    // Kuyruk işlemlerini göstermek için barı aç
-    const queueBar = document.getElementById("queueBar");
-    const queueContent = document.getElementById("queueContent");
-    queueContent.innerHTML = ""; // Önceki içerikleri temizle
-    queueBar.style.display = "block";
-
-    // Kuyruğu oluştur
+    // Öncelik kuyruğunu oluştur
     let cooperationQueue = new CooperationPriorityQueue();
+
+    // Ana yazarı ekle
+    let mainAuthorPaperCount = getPaperCount(foundAuthor);
+    cooperationQueue.enqueue(foundAuthor, mainAuthorPaperCount);
+
+    // İşbirlikçi yazarları ekle
     collaborators.forEach(collaboratorId => {
-        let collaboratorNode = nodes.get(collaboratorId);
-        if (collaboratorNode) {
-            cooperationQueue.enqueue(collaboratorNode, collaboratorNode.value); // Düğüm ağırlığını kullan
-            const listItem = document.createElement("div");
-            listItem.innerText = `Eklendi: ${collaboratorNode.label} (Ağırlık: ${collaboratorNode.value})`;
-            queueContent.appendChild(listItem);
+        let collaborator = nodes.get(collaboratorId);
+        if (collaborator) {
+            let paperCount = getPaperCount(collaborator);
+            cooperationQueue.enqueue(collaborator, paperCount);
         }
     });
 
-    // Kuyruktan çıkarma işlemleri (görsel olarak)
-    setTimeout(() => {
-        while (!cooperationQueue.isEmpty()) {
-            let dequeued = cooperationQueue.dequeue();
-            const listItem = document.createElement("div");
-            listItem.innerText = `Çıkarıldı: ${dequeued.element.label} (Ağırlık: ${dequeued.priority})`;
-            queueContent.appendChild(listItem);
-        }
-    }, 1000);
+    // Adımları göster
+    let steps = cooperationQueue.getSteps();
+    
+    // Bilgi panelini güncelle
+    const infoContent = document.getElementById("info-content");
+    let contentHTML = `
+        <h3>Kuyruk Oluşturma Adımları</h3>
+        <p><strong>Seçilen Yazar:</strong> ${foundAuthor.label}</p>
+        <div style="margin-top: 20px;">
+    `;
+
+    // Her adımı göster
+    steps.forEach((step, index) => {
+        contentHTML += `
+            <div style="margin-bottom: 15px; padding: 10px; background-color: #2a2a2a; border-radius: 4px;">
+                <h4>Adım ${index + 1}</h4>
+                <div style="margin-left: 10px;">
+        `;
+
+        // Kuyruk durumunu göster
+        step.queueState.forEach((item, qIndex) => {
+            contentHTML += `
+                ${item.author.label} (${item.paperCount} makale)
+                ${qIndex < step.queueState.length - 1 ? ' → ' : ''}
+            `;
+        });
+
+        contentHTML += `
+                </div>
+                <div style="margin-top: 5px; color: #4CAF50; font-size: 0.9em;">
+                    Eklenen: ${step.newItem.author.label} (${step.newItem.paperCount} makale)
+                </div>
+            </div>
+        `;
+    });
+
+    // Final durumu göster
+    contentHTML += `
+        <div style="margin-top: 20px; padding: 10px; background-color: #3a3a3a; border-radius: 4px;">
+            <h4>Final Sıralaması</h4>
+            <div style="margin-left: 10px;">
+    `;
+
+    cooperationQueue.getItems().forEach((item, index) => {
+        contentHTML += `
+            ${item.author.label} (${item.paperCount} makale)
+            ${index < cooperationQueue.getItems().length - 1 ? ' → ' : ''}
+        `;
+    });
+
+    contentHTML += `
+            </div>
+        </div>
+    `;
+
+    infoContent.innerHTML = contentHTML;
 }
 
-function closeQueueBar() {
-    const queueBar = document.getElementById("queueBar");
-    queueBar.style.display = "none";
-}
-
-// Cooperation Priority Queue sınıfı
 class CooperationPriorityQueue {
+    constructor() {
+        this.items = [];
+        this.steps = [];
+    }
+
+    enqueue(author, paperCount) {
+        const queueItem = { author, paperCount };
+        
+        // Kuyruğun mevcut durumunu kaydet
+        let currentState = [...this.items];
+        
+        // Makale sayısına göre sıralama (büyükten küçüğe)
+        let added = false;
+        for (let i = 0; i < this.items.length; i++) {
+            if (this.items[i].paperCount < queueItem.paperCount) {
+                this.items.splice(i, 0, queueItem);
+                added = true;
+                break;
+            }
+        }
+        if (!added) {
+            this.items.push(queueItem);
+        }
+
+        // Bu adımı kaydet
+        this.steps.push({
+            action: "ekleme",
+            newItem: queueItem,
+            queueState: [...this.items]
+        });
+
+        return queueItem;
+    }
+
+    getItems() {
+        return this.items;
+    }
+
+    getSteps() {
+        return this.steps;
+    }
+}
+
+function getPaperCount(node) {
+    if (node.title) {
+        const papers = node.title.match(/<b>Makaleler:<\/b><br>(.*?)(?=<\/div>|$)/s);
+        if (papers && papers[1]) {
+            return papers[1].split('<br>').filter(paper => paper.trim()).length;
+        }
+    }
+    return 0;
+}
+
+function addOperationLog(container, author, paperCount, isEnqueue) {
+    const operation = isEnqueue ? "Eklendi" : "Çıkarıldı";
+    const backgroundColor = isEnqueue ? "#2a2a2a" : "#3a3a3a";
+    
+    const logItem = document.createElement("div");
+    logItem.style.cssText = `
+        padding: 8px;
+        margin: 5px 0;
+        background-color: ${backgroundColor};
+        border-radius: 4px;
+        border-left: 4px solid ${isEnqueue ? "#4CAF50" : "#f44336"};
+    `;
+    
+    logItem.innerHTML = `
+        <strong>${operation}:</strong> ${author.label}<br>
+        <small>Makale Sayısı: ${paperCount}</small>
+    `;
+    
+    container.appendChild(logItem);
+    container.scrollTop = container.scrollHeight;
+}
+
+function findShortestPath() {
+    let startNodeId = prompt("Lütfen başlangıç yazarının ORCID ID'sini giriniz:");
+    if (!startNodeId) {
+        alert("Geçersiz başlangıç ORCID ID!");
+        return;
+    }
+
+    let endNodeId = prompt("Lütfen hedef yazarının ORCID ID'sini giriniz:");
+    if (!endNodeId) {
+        alert("Geçersiz hedef ORCID ID!");
+        return;
+    }
+
+    let foundStartNode = nodes.get(startNodeId);
+    let foundEndNode = nodes.get(endNodeId);
+
+    if (!foundStartNode || !foundEndNode) {
+        alert("Başlangıç veya hedef yazar bulunamadı!");
+        return;
+    }
+
+    // Dijkstra algoritması ile en kısa yolu bul
+    let shortestPath = dijkstra(startNodeId, endNodeId);
+    if (!shortestPath) {
+        alert("A ile B arasında bir yol bulunamadı.");
+        return;
+    }
+
+    // Yolu grafiksel olarak göster
+    highlightPath(shortestPath.path);
+    alert(`A'dan B'ye en kısa yol: ${shortestPath.path.join(" → ")} (Toplam ağırlık: ${shortestPath.totalWeight})`);
+}
+
+function dijkstra(startNodeId, endNodeId) {
+    let distances = {};
+    let previous = {};
+    let pq = new PriorityQueue();
+    let visited = new Set();
+
+    // Başlangıç değerlerini ayarla
+    nodes.forEach(node => {
+        distances[node.id] = Infinity;
+        previous[node.id] = null;
+    });
+    distances[startNodeId] = 0;
+    pq.enqueue(startNodeId, 0);
+
+    while (!pq.isEmpty()) {
+        let currentNode = pq.dequeue().element;
+        if (visited.has(currentNode)) continue;
+        visited.add(currentNode);
+
+        // Eğer hedef düğüme ulaşıldıysa
+        if (currentNode === endNodeId) {
+            let path = [];
+            let totalWeight = distances[endNodeId];
+            while (currentNode) {
+                path.unshift(currentNode);
+                currentNode = previous[currentNode];
+            }
+            return { path, totalWeight };
+        }
+
+        // Komşuları işle
+        let neighbors = network.getConnectedEdges(currentNode);
+        neighbors.forEach(edgeId => {
+            let edge = edges.get(edgeId);
+            let neighbor = edge.from === currentNode ? edge.to : edge.from;
+
+            if (!visited.has(neighbor)) {
+                let newDist = distances[currentNode] + (edge.value || 1); // Kenar ağırlığı
+                if (newDist < distances[neighbor]) {
+                    distances[neighbor] = newDist;
+                    previous[neighbor] = currentNode;
+                    pq.enqueue(neighbor, newDist);
+                }
+            }
+        });
+    }
+
+    return null; // Eğer hedef düğüme ulaşılamazsa
+}
+
+function highlightPath(path) {
+    // Tüm kenar renklerini eski haline döndür
+    edges.forEach(edge => {
+        edges.update({ id: edge.id, color: { color: "#848484" } });
+    });
+
+    // En kısa yoldaki kenarları kırmızı yap
+    for (let i = 0; i < path.length - 1; i++) {
+        let source = path[i];
+        let target = path[i + 1];
+
+        // Kenarı bul ve kırmızıya boya
+        edges.forEach(edge => {
+            if ((edge.from === source && edge.to === target) || (edge.from === target && edge.to === source)) {
+                edges.update({ id: edge.id, color: { color: "#ff0000" } });
+            }
+        });
+    }
+
+    // Ağın merkezlenmesi
+    network.fit({
+        nodes: path,
+        animation: {
+            duration: 1500,
+            easingFunction: "easeInOutQuad"
+        }
+    });
+}
+
+class PriorityQueue {
     constructor() {
         this.items = [];
     }
@@ -385,7 +610,7 @@ class CooperationPriorityQueue {
         let added = false;
 
         for (let i = 0; i < this.items.length; i++) {
-            if (this.items[i].priority < newItem.priority) {
+            if (this.items[i].priority > newItem.priority) {
                 this.items.splice(i, 0, newItem);
                 added = true;
                 break;
@@ -403,148 +628,8 @@ class CooperationPriorityQueue {
         return this.items.length === 0;
     }
 }
-      function findShortestPath() {
-        let startNodeId = prompt("Lütfen başlangıç yazarının ORCID ID'sini giriniz:");
-        if (!startNodeId) {
-            alert("Geçersiz başlangıç ORCID ID!");
-            return;
-        }
 
-        let endNodeId = prompt("Lütfen hedef yazarının ORCID ID'sini giriniz:");
-        if (!endNodeId) {
-            alert("Geçersiz hedef ORCID ID!");
-            return;
-        }
-
-        let foundStartNode = nodes.get(startNodeId);
-        let foundEndNode = nodes.get(endNodeId);
-
-        if (!foundStartNode || !foundEndNode) {
-            alert("Başlangıç veya hedef yazar bulunamadı!");
-            return;
-        }
-
-        // Dijkstra algoritması ile en kısa yolu bul
-        let shortestPath = dijkstra(startNodeId, endNodeId);
-        if (!shortestPath) {
-            alert("A ile B arasında bir yol bulunamadı.");
-            return;
-        }
-
-        // Yolu grafiksel olarak göster
-        highlightPath(shortestPath.path);
-        alert(`A'dan B'ye en kısa yol: ${shortestPath.path.join(" → ")} (Toplam ağırlık: ${shortestPath.totalWeight})`);
-    }
-
-    function dijkstra(startNodeId, endNodeId) {
-        let distances = {};
-        let previous = {};
-        let pq = new PriorityQueue();
-        let visited = new Set();
-
-        // Başlangıç değerlerini ayarla
-        nodes.forEach(node => {
-            distances[node.id] = Infinity;
-            previous[node.id] = null;
-        });
-        distances[startNodeId] = 0;
-        pq.enqueue(startNodeId, 0);
-
-        while (!pq.isEmpty()) {
-            let currentNode = pq.dequeue().element;
-            if (visited.has(currentNode)) continue;
-            visited.add(currentNode);
-
-            // Eğer hedef düğüme ulaşıldıysa
-            if (currentNode === endNodeId) {
-                let path = [];
-                let totalWeight = distances[endNodeId];
-                while (currentNode) {
-                    path.unshift(currentNode);
-                    currentNode = previous[currentNode];
-                }
-                return { path, totalWeight };
-            }
-
-            // Komşuları işle
-            let neighbors = network.getConnectedEdges(currentNode);
-            neighbors.forEach(edgeId => {
-                let edge = edges.get(edgeId);
-                let neighbor = edge.from === currentNode ? edge.to : edge.from;
-
-                if (!visited.has(neighbor)) {
-                    let newDist = distances[currentNode] + (edge.value || 1); // Kenar ağırlığı
-                    if (newDist < distances[neighbor]) {
-                        distances[neighbor] = newDist;
-                        previous[neighbor] = currentNode;
-                        pq.enqueue(neighbor, newDist);
-                    }
-                }
-            });
-        }
-
-        return null; // Eğer hedef düğüme ulaşılamazsa
-    }
-
-    function highlightPath(path) {
-        // Tüm kenar renklerini eski haline döndür
-        edges.forEach(edge => {
-            edges.update({ id: edge.id, color: { color: "#848484" } });
-        });
-
-        // En kısa yoldaki kenarları kırmızı yap
-        for (let i = 0; i < path.length - 1; i++) {
-            let source = path[i];
-            let target = path[i + 1];
-
-            // Kenarı bul ve kırmızıya boya
-            edges.forEach(edge => {
-                if ((edge.from === source && edge.to === target) || (edge.from === target && edge.to === source)) {
-                    edges.update({ id: edge.id, color: { color: "#ff0000" } });
-                }
-            });
-        }
-
-        // Ağın merkezlenmesi
-        network.fit({
-            nodes: path,
-            animation: {
-                duration: 1500,
-                easingFunction: "easeInOutQuad"
-            }
-        });
-    }
-
-    class PriorityQueue {
-        constructor() {
-            this.items = [];
-        }
-
-        enqueue(element, priority) {
-            let newItem = { element, priority };
-            let added = false;
-
-            for (let i = 0; i < this.items.length; i++) {
-                if (this.items[i].priority > newItem.priority) {
-                    this.items.splice(i, 0, newItem);
-                    added = true;
-                    break;
-                }
-            }
-
-            if (!added) this.items.push(newItem);
-        }
-
-        dequeue() {
-            return this.items.shift();
-        }
-
-        isEmpty() {
-            return this.items.length === 0;
-        }
-    }
-
-    function findLongestPathFromAuthor() {
+function findLongestPathFromAuthor() {
     let startNodeId = prompt("Lütfen bir ORCID ID giriniz:");
     if (!startNodeId) {
         alert("Geçersiz ORCID ID!");
