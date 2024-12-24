@@ -13,22 +13,22 @@ def create_visualization(graph_data):
     )
     
     options = {
-    "physics": {
-        "enabled": True,  # Fizik motorunu etkinleştir
-        "stabilization": {
-            "enabled": True,
-            "iterations": 150  # Stabilizasyon iterasyon sayısı
-        },
-        "barnesHut": {
-            "gravitationalConstant": -3000,  # Çekim kuvveti
-            "centralGravity": 0.4,  # Merkezi çekim
-            "springLength": 10,  # Yay uzunluğu
-            "springConstant": 0.1,  # Yay sertliği
-            "damping": 0.2  # Sönümleme oranı
+        "physics": {
+            "enabled": True,  # Fizik motorunu etkinleştir
+            "stabilization": {
+                "enabled": True,
+                "iterations": 150  # Stabilizasyon iterasyon sayısı
+            },
+            "barnesHut": {
+                "gravitationalConstant": -3000,  # Çekim kuvveti
+                "centralGravity": 0.4,  # Merkezi çekim
+                "springLength": 10,  # Yay uzunluğu
+                "springConstant": 0.1,  # Yay sertliği
+                "damping": 0.2  # Sönümleme oranı
+            }
         }
     }
-}
-
+    
     net.set_options(json.dumps(options))
     
     with open(graph_data, 'r', encoding='utf-8') as file:
@@ -42,10 +42,22 @@ def create_visualization(graph_data):
             color = "#00ff00" if node_id.startswith("0000-") else "#ff9999"
             size = 20 + min(connection_count, 100) * 0.2
             
+            # Papers bilgisini al ve düzenle
+            papers = node.get("papers", [])
+            papers_html = "<br>".join(papers) if papers else "Yok"
+
+            # Düğüm için tooltip bilgisi
+            title = f"""
+                <b>ORCID:</b> {node_id}<br>
+                <b>İsim:</b> {node['name']}<br>
+                <b>Bağlantı Sayısı:</b> {connection_count}<br>
+                <b>Makaleler:</b><br>{papers_html}
+            """
+
             net.add_node(
                 node_id,
                 label=node["name"],
-                title=f"ORCID: {node_id}\nİsim: {node['name']}\nBağlantı sayısı: {connection_count+1}",
+                title=title,
                 color=color,
                 size=size,
                 mass=1 + connection_count * 0.1,
@@ -652,10 +664,18 @@ class CooperationPriorityQueue {
                 // Düğümün bağlantı sayısını hesapla
                 const connectionCount = network.getConnectedNodes(nodeId).length;
                 
-                // JSON'dan papers dizisini al
-                let papersList = '<li>Yok</li>';
-                if (node && node.papers && Array.isArray(node.papers) && node.papers.length > 0) {
-                    papersList = node.papers.map(paper => `<li>${paper}</li>`).join('');
+                // Makaleleri kontrol et ve listele
+                let papersList = '<li>Makale bulunamadı</li>';
+                if (node.title) {
+                    // HTML title özelliğinden makaleleri çıkar
+                    const titleContent = node.title;
+                    const papersMatch = titleContent.match(/<b>Makaleler:<\/b><br>(.*?)(?=<\/div>|$)/s);
+                    if (papersMatch && papersMatch[1]) {
+                        const papers = papersMatch[1].split('<br>').filter(paper => paper.trim());
+                        if (papers.length > 0) {
+                            papersList = papers.map(paper => `<li>${paper}</li>`).join('');
+                        }
+                    }
                 }
 
                 infoContent.innerHTML = `
@@ -665,10 +685,6 @@ class CooperationPriorityQueue {
                     <p><strong>Makaleler:</strong></p>
                     <ul>${papersList}</ul>
                 `;
-
-                // Hata ayıklama için konsola yazdır
-                console.log("Seçilen düğüm:", node);
-                console.log("Makaleler:", node.papers);
             } else {
                 document.getElementById("info-content").innerHTML = "Bir düğüme tıklayın...";
             }
