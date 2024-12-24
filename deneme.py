@@ -132,6 +132,17 @@ def create_visualization(graph_data):
     background-color: #0052a3;
 }
 
+    #info-content {
+        font-size: 14px;
+        line-height: 1.5;
+        color: white; /* Yazı rengini beyaz yap */
+        background-color: transparent;
+    }
+
+    #info-content table, #info-content th, #info-content td {
+        color: white; /* Tablo yazı rengini beyaz yap */
+    }
+
     </style>
     """
     
@@ -256,7 +267,7 @@ function closeShortestPathsTable() {
     let distances = {};
     let previous = {};
     let unvisited = new Set(Object.keys(graph));
-    let tableContainer = document.getElementById("shortestPathsTable");
+    let tableContainer = document.getElementById("info-content");
     tableContainer.innerHTML = "<table><tr><th>Düğüm</th><th>Mesafe</th><th>Önceki</th></tr></table>";
 
     Object.keys(graph).forEach(node => {
