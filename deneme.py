@@ -487,7 +487,6 @@ function addOperationLog(container, author, paperCount, isEnqueue) {
     container.appendChild(logItem);
     container.scrollTop = container.scrollHeight;
 }
-
 function findShortestPath() {
     let startNodeId = prompt("Lütfen başlangıç yazarının ORCID ID'sini giriniz:");
     if (!startNodeId) {
@@ -518,8 +517,18 @@ function findShortestPath() {
 
     // Yolu grafiksel olarak göster
     highlightPath(shortestPath.path);
-    alert(`A'dan B'ye en kısa yol: ${shortestPath.path.join(" → ")} (Toplam ağırlık: ${shortestPath.totalWeight})`);
+
+    // Bilgi panelini güncelle
+    const infoContent = document.getElementById("info-content");
+    infoContent.innerHTML = `
+        <h3>En Kısa Yol Bilgileri</h3>
+        <p><strong>Başlangıç:</strong> ${startNodeId}</p>
+        <p><strong>Hedef:</strong> ${endNodeId}</p>
+        <p><strong>En Kısa Yol:</strong> ${shortestPath.path.join(" → ")}</p>
+        <p><strong>Toplam Ağırlık:</strong> ${shortestPath.totalWeight}</p>
+    `;
 }
+
 
 function dijkstra(startNodeId, endNodeId) {
     let distances = {};
