@@ -33,37 +33,47 @@ def create_visualization(graph_data):
     
     with open(graph_data, 'r', encoding='utf-8') as file:
         data = json.load(file)
+
+    # Makale sayılarını ve eşik değerlerini hesapla
+    paper_counts = [len(node.get("papers", [])) for node in data["nodes"]]
+    average_paper_count = sum(paper_counts) / len(paper_counts)
+    threshold_high = average_paper_count * 1.2
+    threshold_low = average_paper_count * 0.8
     
     added_nodes = set()
     for node in data["nodes"]:
         node_id = node["orcid"]
         if node_id not in added_nodes:
-            connection_count = len(node["connections"])
-            color = "#00ff00" if node_id.startswith("0000-") else "#ff9999"
-            size = 20 + min(connection_count, 100) * 0.2
-            
-            # Papers bilgisini al ve düzenle
-            papers = node.get("papers", [])
-            papers_html = "<br>".join(papers) if papers else "Yok"
+            # Her düğüm için makale sayısını hesaplayın
+            paper_count = len(node.get("papers", []))
 
-            # Düğüm için tooltip bilgisi
-            title = f"""
-                <b>ORCID:</b> {node_id}<br>
-                <b>İsim:</b> {node['name']}<br>
-                <b>Bağlantı Sayısı:</b> {connection_count}<br>
-                <b>Makaleler:</b><br>{papers_html}
-            """
+            # Boyut ve renk ayarları
+            if paper_count > threshold_high:
+                color = "#ff0000"  # Koyu renk
+                size = 40  # Büyük boyut
+            elif paper_count < threshold_low:
+                color = "#00ff00"  # Açık renk
+                size = 20  # Küçük boyut
+            else:
+                color = "#ffffff"  # Orta renk
+                size = 30  # Orta boyut
 
+            # Düğüm ekleme
             net.add_node(
                 node_id,
                 label=node["name"],
-                title=title,
+                title=f"""
+                    <b>ORCID:</b> {node_id}<br>
+                    <b>İsim:</b> {node['name']}<br>
+                    <b>Makale Sayısı:</b> {paper_count}<br>
+                    <b>Makaleler:</b><br>{"<br>".join(node.get("papers", [])) if node.get("papers") else "Yok"}
+                """,
                 color=color,
                 size=size,
-                mass=1 + connection_count * 0.1,
-                value=connection_count
+                mass=1 + paper_count * 0.1
             )
             added_nodes.add(node_id)
+
     
     for edge in data["edges"]:
         source, target = edge["edge"]
@@ -166,7 +176,7 @@ def create_visualization(graph_data):
     </style>
     """
     
-    buttons = """
+    buttons = r"""
     <div id="buttons">
     <button class="menu-button" onclick="handleClick(1)">1. İster</button>
     <button class="menu-button" onclick="handleClick(2)">2. İster</button>
@@ -747,7 +757,7 @@ function findLongestPathFromAuthor() {
     # HTML içeriğini güncelle
     html_content = html_content.replace('</head>', f'{style}</head>')
     html_content = html_content.replace('<body>', f'<body>{buttons}')
-    html_content = html_content.replace('</body>', '''
+    html_content = html_content.replace('</body>', r'''
     <script>
         network.on("click", function(properties) {
             const nodeId = properties.nodes[0];
