@@ -14,17 +14,17 @@ def create_visualization(graph_data):
     
     options = {
         "physics": {
-            "enabled": True,  # Fizik motorunu etkinleştir
+            "enabled": True, 
             "stabilization": {
                 "enabled": True,
-                "iterations": 150  # Stabilizasyon iterasyon sayısı
+                "iterations": 150  
             },
             "barnesHut": {
-                "gravitationalConstant": -3000,  # Çekim kuvveti
-                "centralGravity": 0.4,  # Merkezi çekim
-                "springLength": 10,  # Yay uzunluğu
-                "springConstant": 0.1,  # Yay sertliği
-                "damping": 0.2  # Sönümleme oranı
+                "gravitationalConstant": -3000,  
+                "centralGravity": 0.4, 
+                "springLength": 10, 
+                "springConstant": 0.1, 
+                "damping": 0.2 
             }
         }
     }
@@ -40,37 +40,33 @@ def create_visualization(graph_data):
     if not node["orcid"].startswith("generated")
     ]
 
-    # Ortalama ve eşik değerlerini hesapla
     if paper_counts:
         average_paper_count = sum(paper_counts) / len(paper_counts)
         threshold_high = average_paper_count * 1.2
         threshold_low = average_paper_count * 0.8
     else:
-        average_paper_count = threshold_high = threshold_low = 0  # Hiç düğüm yoksa sıfırla
+        average_paper_count = threshold_high = threshold_low = 0  
 
     added_nodes = set()
     for node in data["nodes"]:
         node_id = node["orcid"]
 
         if node_id not in added_nodes:
-            # Her düğüm için makale sayısını hesaplayın
             paper_count = len(node.get("papers", []))
             if node_id.startswith("generated"):
-                color = "#ff9999"  # Fosforlu yeşil
-                size = 20  # Varsayılan boyut
+                color = "#ff9999" 
+                size = 20 
             else:
-                # Boyut ve renk ayarları
                 if paper_count > threshold_high:
-                    color = "#00ff00"  # Koyu renk
-                    size = 60  # Büyük boyut
+                    color = "#00ff00"  
+                    size = 60 
                 elif paper_count < threshold_low:
-                    color = "#00ff00"  # Açık renk
-                    size = 20  # Küçük boyut
+                    color = "#00ff00"  
+                    size = 20  
                 else:
-                    color = "#00ff00"  # Orta renk
-                    size = 40  # Orta boyut
+                    color = "#00ff00"  
+                    size = 40 
 
-            # Düğüm ekleme
             net.add_node(
                 node_id,
                 label=node["name"],
@@ -100,14 +96,11 @@ def create_visualization(graph_data):
                 width=1 + weight / 2
             )
     
-    # HTML oluştur
     net.show("graph_visualization.html", notebook=False)
     
-    # HTML dosyasını düzenle
     with open("graph_visualization.html", "r", encoding="utf-8") as file:
         html_content = file.read()
     
-    # CSS ve düğmeleri ekle
     style = """
     <style>
         body {
@@ -155,8 +148,8 @@ def create_visualization(graph_data):
     }
 
 .menu-button {
-    width: 90%; /* Düğmelerin genişliği */
-    height: 12%; /* Her düğmenin yüksekliği (isteğe bağlı ayarlanabilir) */
+    width: 90%; 
+    height: 12%; 
     background-color: #0066cc;
     color: white;
     border: none;
@@ -166,8 +159,8 @@ def create_visualization(graph_data):
     font-weight: bold;
     text-align: center;
     display: flex;
-    justify-content: center; /* Yazıyı ortala */
-    align-items: center; /* Yazıyı ortala */
+    justify-content: center; 
+    align-items: center; 
 }
 
 .menu-button:hover {
@@ -177,12 +170,12 @@ def create_visualization(graph_data):
     #info-content {
         font-size: 14px;
         line-height: 1.5;
-        color: white; /* Yazı rengini beyaz yap */
+        color: white; 
         background-color: transparent;
     }
 
     #info-content table, #info-content th, #info-content td {
-        color: white; /* Tablo yazı rengini beyaz yap */
+        color: white;
     }
 
     </style>
@@ -252,6 +245,34 @@ function handleClick(isterId) {
         findShortestPath();
     } else if (isterId === 2) {
         handleCooperationQueue();
+    } else if (isterId === 3) {
+        let authorId = prompt("Lütfen yazarın ORCID ID'sini giriniz:");
+        if (!authorId) {
+            alert("Geçersiz ORCID ID!");
+            return;
+        }
+
+        let foundAuthor = nodes.get(authorId);
+        if (!foundAuthor) {
+            alert("Bu ORCID ID'ye sahip bir yazar bulunamadı!");
+            return;
+        }
+
+        let connections = network.getConnectedNodes(authorId);
+        if (connections.length === 0) {
+            alert("Bu yazarın bağlantısı bulunmamaktadır!");
+            return;
+        }
+
+        let connectionNames = connections.map(id => nodes.get(id).label);
+        
+        let bstDisplay = document.getElementById("info-content");
+        bstDisplay.innerHTML = `
+            <h3>Bağlantı Ağacı</h3>
+            <pre style="color: white; font-family: monospace; line-height: 1.5; font-size: 12px;">
+${createTreeVisualization(connectionNames)}
+            </pre>
+        `;
     } else if (isterId === 4) {
         handleShortestPathsFromAuthor();
     } else if (isterId === 5) {
@@ -262,9 +283,41 @@ function handleClick(isterId) {
         findLongestPathFromAuthor();
     }
 }
+
+function createTreeVisualization(names) {
+    if (!names || names.length === 0) return "";
+
+    // Ağaç seviyelerini oluştur
+    let levels = [];
+    let currentLevel = 0;
+    let nodesInLevel = 1;
+    let currentIndex = 0;
+
+    while (currentIndex < names.length) {
+        let level = names.slice(currentIndex, currentIndex + nodesInLevel);
+        levels.push(level);
+        currentIndex += nodesInLevel;
+        nodesInLevel *= 2;
+    }
+
+    let visualization = [];
+    levels.forEach((level, index) => {
+        // Her seviye için boşluk hesapla
+        let padding = " ".repeat(Math.max(0, (50 - level.join(" ").length) / 2));
+        visualization.push(padding + level.join("     "));
+        
+        if (index < levels.length - 1) {
+            let connections = level.map(() => "/   \\").join(" ");
+            visualization.push(padding + connections);
+        }
+    });
+
+    return visualization.join("\n");
+}
+
 function closeShortestPathsTable() {
     let tableContainer = document.getElementById("shortestPathsTable");
-    tableContainer.style.display = "none"; // Tabloyu g��rünmez yap
+    tableContainer.style.display = "none"; // Tabloyu görünmez yap
     tableContainer.querySelector("tbody").innerHTML = ""; // Tablo içeriğini temizle
 }
 
@@ -282,7 +335,6 @@ function closeShortestPathsTable() {
         return;
     }
 
-    // İşbirliği grafiği oluştur
     let graph = {};
     let queue = [authorId];
     let visited = new Set();
@@ -303,7 +355,6 @@ function closeShortestPathsTable() {
         });
     }
 
-    // En kısa yolları hesapla
     let distances = {};
     let previous = {};
     let unvisited = new Set(Object.keys(graph));
@@ -328,7 +379,6 @@ function closeShortestPathsTable() {
             }
         });
 
-        // Tabloyu güncelle
         let table = tableContainer.querySelector("table");
         table.innerHTML = "<tr><th>Düğüm</th><th>Mesafe</th><th>Önceki</th></tr>";
         Object.keys(distances).forEach(node => {
@@ -353,21 +403,17 @@ function closeShortestPathsTable() {
         return;
     }
 
-    // İşbirliği yaptığı yazarları bul
     let collaborators = network.getConnectedNodes(authorId);
     if (collaborators.length === 0) {
         alert("Bu yazarın işbirliği yaptığı başka yazar bulunamadı!");
         return;
     }
 
-    // Öncelik kuyruğunu oluştur
     let cooperationQueue = new CooperationPriorityQueue();
 
-    // Ana yazarı ekle
     let mainAuthorPaperCount = getPaperCount(foundAuthor);
     cooperationQueue.enqueue(foundAuthor, mainAuthorPaperCount);
 
-    // İşbirlikçi yazarları ekle
     collaborators.forEach(collaboratorId => {
         let collaborator = nodes.get(collaboratorId);
         if (collaborator) {
@@ -376,10 +422,8 @@ function closeShortestPathsTable() {
         }
     });
 
-    // Adımları göster
     let steps = cooperationQueue.getSteps();
     
-    // Bilgi panelini güncelle
     const infoContent = document.getElementById("info-content");
     let contentHTML = `
         <h3>Kuyruk Oluşturma Adımları</h3>
@@ -387,7 +431,6 @@ function closeShortestPathsTable() {
         <div style="margin-top: 20px;">
     `;
 
-    // Her adımı göster
     steps.forEach((step, index) => {
         contentHTML += `
             <div style="margin-bottom: 15px; padding: 10px; background-color: #2a2a2a; border-radius: 4px;">
@@ -395,7 +438,6 @@ function closeShortestPathsTable() {
                 <div style="margin-left: 10px;">
         `;
 
-        // Kuyruk durumunu göster
         step.queueState.forEach((item, qIndex) => {
             contentHTML += `
                 ${item.author.label} (${item.paperCount} makale)
@@ -412,7 +454,6 @@ function closeShortestPathsTable() {
         `;
     });
 
-    // Final durumu göster
     contentHTML += `
         <div style="margin-top: 20px; padding: 10px; background-color: #3a3a3a; border-radius: 4px;">
             <h4>Final Sıralaması</h4>
@@ -443,10 +484,8 @@ class CooperationPriorityQueue {
     enqueue(author, paperCount) {
         const queueItem = { author, paperCount };
         
-        // Kuyruğun mevcut durumunu kaydet
         let currentState = [...this.items];
         
-        // Makale sayısına göre sıralama (büyükten küçüğe)
         let added = false;
         for (let i = 0; i < this.items.length; i++) {
             if (this.items[i].paperCount < queueItem.paperCount) {
@@ -459,7 +498,6 @@ class CooperationPriorityQueue {
             this.items.push(queueItem);
         }
 
-        // Bu adımı kaydet
         this.steps.push({
             action: "ekleme",
             newItem: queueItem,
@@ -558,7 +596,6 @@ function dijkstra(startNodeId, endNodeId) {
     let pq = new PriorityQueue();
     let visited = new Set();
 
-    // Başlangıç değerlerini ayarla
     nodes.forEach(node => {
         distances[node.id] = Infinity;
         previous[node.id] = null;
@@ -571,7 +608,6 @@ function dijkstra(startNodeId, endNodeId) {
         if (visited.has(currentNode)) continue;
         visited.add(currentNode);
 
-        // Eğer hedef düğüme ulaşıldıysa
         if (currentNode === endNodeId) {
             let path = [];
             let totalWeight = distances[endNodeId];
@@ -582,7 +618,6 @@ function dijkstra(startNodeId, endNodeId) {
             return { path, totalWeight };
         }
 
-        // Komşuları işle
         let neighbors = network.getConnectedEdges(currentNode);
         neighbors.forEach(edgeId => {
             let edge = edges.get(edgeId);
@@ -608,12 +643,10 @@ function highlightPath(path) {
         edges.update({ id: edge.id, color: { color: "#848484" } });
     });
 
-    // En kısa yoldaki kenarları kırmızı yap
     for (let i = 0; i < path.length - 1; i++) {
         let source = path[i];
         let target = path[i + 1];
 
-        // Kenarı bul ve kırmızıya boya
         edges.forEach(edge => {
             if ((edge.from === source && edge.to === target) || (edge.from === target && edge.to === source)) {
                 edges.update({ id: edge.id, color: { color: "#ff0000" } });
@@ -621,7 +654,6 @@ function highlightPath(path) {
         });
     }
 
-    // Ağın merkezlenmesi
     network.fit({
         nodes: path,
         animation: {
@@ -766,7 +798,6 @@ function findLongestPathFromAuthor() {
 
     """
     
-    # HTML içeriğini güncelle
     html_content = html_content.replace('</head>', f'{style}</head>')
     html_content = html_content.replace('<body>', f'<body>{buttons}')
     html_content = html_content.replace('</body>', r'''
@@ -777,13 +808,13 @@ function findLongestPathFromAuthor() {
                 const node = nodes.get(nodeId);
                 const infoContent = document.getElementById("info-content");
 
-                // Düğümün bağlantı sayısını hesapla
+               
                 const connectionCount = network.getConnectedNodes(nodeId).length;
                 
-                // Makaleleri kontrol et ve listele
+                
                 let papersList = '<li>Makale bulunamadı</li>';
                 if (node.title) {
-                    // HTML title özelliğinden makaleleri çıkar
+                    
                     const titleContent = node.title;
                     const papersMatch = titleContent.match(/<b>Makaleler:<\/b><br>(.*?)(?=<\/div>|$)/s);
                     if (papersMatch && papersMatch[1]) {
@@ -809,7 +840,6 @@ function findLongestPathFromAuthor() {
     </body>
     ''')
     
-   # Güncellenmiş HTML'i kaydet
     with open("graph_visualization.html", "w", encoding="utf-8") as file:
         file.write(html_content)
 

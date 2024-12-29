@@ -11,7 +11,6 @@ def parse_coauthors(coauthor_str):
     return coauthor_list
 
 def clean_connections(graph, data):
-    # ORCID'ler için birden fazla isim olup olmadığını kontrol et
     orcid_to_names = {}
     for _, row in data.iterrows():
         orcid = row["orcid"].lower()
@@ -20,13 +19,12 @@ def clean_connections(graph, data):
             orcid_to_names[orcid] = set()
         orcid_to_names[orcid].add(name)
 
-    # Bağlantıları temizle
-    for orcid, node_data in graph.nodes.items():  # getNodes() yerine nodes
+    for orcid, node_data in graph.nodes.items():  
         if not orcid.startswith("generated"):
             valid_names = orcid_to_names.get(orcid, set())
             node_data["connections"] = [
                 conn for conn in node_data["connections"]
-                if graph.nodes[conn]["name"] not in valid_names  # Aynı ORCID'deki isimler bağlantılarda olmasın
+                if graph.nodes[conn]["name"] not in valid_names  
             ]
 
 
@@ -49,11 +47,11 @@ class Graph:
             self.nodes[orcid]["papers"].append(paper_title)
 
     def addEdges(self, orcid_1, orcid_2, weight=1):
-        if orcid_1 != orcid_2:  # Kendisiyle bağlantı kurmasın
+        if orcid_1 != orcid_2:  
             if orcid_1 in self.nodes and orcid_2 in self.nodes:
-                # Aynı ORCID'e sahip farklı isim kontrolü
+               
                 if orcid_1 == orcid_2 and self.nodes[orcid_1]["name"] != self.nodes[orcid_2]["name"]:
-                    return  # Aynı ORCID farklı isim varsa bağlantı ekleme
+                    return 
                 if self.nodes[orcid_1]["name"] == self.nodes[orcid_2]["name"]:
                     return
                 edge = (min(orcid_1, orcid_2), max(orcid_1, orcid_2))
@@ -75,20 +73,20 @@ class Graph:
             "edges": []
         }
 
-        # Düğümleri ekle
+        
         for node_id, node_data in self.nodes.items():
             node_entry = {
                 "orcid": node_id,
                 "name": node_data["name"],
                 "connections": [self.nodes[conn]["name"] for conn in node_data["connections"]]
             }
-            # Eğer ORCID "generated" ile başlamıyorsa, makale başlıklarını ekle
+            
             if not node_id.startswith("generated"):
                 node_entry["papers"] = node_data["papers"]
 
             graph_data["nodes"].append(node_entry)
 
-        # Kenarları ekle
+        
         for edge, weight in self.edges.items():
             edge_entry = {
                 "edge": list(edge),
@@ -96,7 +94,7 @@ class Graph:
             }
             graph_data["edges"].append(edge_entry)
 
-        # JSON'u dosyaya yaz
+        
         with open(output_file, "w", encoding="utf-8") as file:
             json.dump(graph_data, file, ensure_ascii=False, indent=4)
 
@@ -153,7 +151,7 @@ def create_priority_queue_manual(graph, start_id):
         print(f"No such ORCID {start_id} exists in the graph.")
         return []
 
-    # Kuyruk: [(ağırlık, yazar_id)] şeklinde bir liste
+    
     priority_queue = []
     visited = set()
 
@@ -169,7 +167,7 @@ def create_priority_queue_manual(graph, start_id):
             priority_queue.append((neighbor_connections, neighbor))
             visited.add(neighbor)
 
-    # Kuyruğu ağırlıklara (ağırlık sayısına göre) göre büyükten küçüğe sırala
+    
     for i in range(len(priority_queue)):
         for j in range(i + 1, len(priority_queue)):
             if priority_queue[i][0] < priority_queue[j][0]:  # Büyük ağırlık önce gelmeli
@@ -225,14 +223,15 @@ def find_longest_path(graph, start_node):
         nonlocal longest_path
         visited.add(current_node)
         path.append(current_node)
-        # Eğer yol, mevcut en uzun yoldan uzunsa, güncelle
+       
+
         if len(path) > len(longest_path):
             longest_path = path[:]
-        # Komşuları gez
+        
         for neighbor in graph.get_outgoing_edges(current_node):
             if neighbor not in visited:
                 dfs(neighbor, path)
-        # Geri dönmeden önce düğümü path'ten çıkar
+        
         path.pop()
         visited.remove(current_node)
     dfs(start_node, [])
@@ -240,14 +239,14 @@ def find_longest_path(graph, start_node):
 file_path = 'data/dataset.xlsx'
 data = pd.read_excel(file_path)
 
-# Her yazar için makale başlıklarını topla
+
 author_papers = {}
 for _, row in data.iterrows():
     if pd.notna(row["orcid"]) and pd.notna(row["paper_title"]):
         orcid = row["orcid"].lower()
         if orcid not in author_papers:
             author_papers[orcid] = []
-        if row["paper_title"] not in author_papers[orcid]:  # Tekrarları önle
+        if row["paper_title"] not in author_papers[orcid]: 
             author_papers[orcid].append(row["paper_title"])
 unique_authors = data[["author_name", "orcid", "paper_title"]].dropna().drop_duplicates()
 author_id_map = {row.orcid.lower(): row.author_name.lower() for _, row in unique_authors.iterrows()}
@@ -259,21 +258,19 @@ for coauthor_list in data["coauthors"].apply(parse_coauthors):
 existing_authors = set(author_id_map.values())
 missing_coauthors = all_coauthors - existing_authors
 
-# Sabit bir ID oluşturmak için fonksiyon ve eksik yazarları işleme
 def generate_deterministic_id(author_name):
     total = 0
     for i, char in enumerate(author_name):
-        total += (i + 1) * ord(char)  # Her karakterin ASCII değerine pozisyonla ağırlık ver
-    return f"generated-{total % 1000000}"  # Sabit bir uzunluk için modulo kullan
+        total += (i + 1) * ord(char) 
+    return f"generated-{total % 1000000}"  
 
 for coauthor in missing_coauthors:
-    deterministic_id = generate_deterministic_id(coauthor)  # Sabit ID oluşturma
+    deterministic_id = generate_deterministic_id(coauthor) 
     author_id_map[deterministic_id] = coauthor
 
 authorGraph = Graph()
 for orcid, author_name in author_id_map.items():
     authorGraph.addNode(orcid, author_name)
-    # Yazarın makalelerini ekle
     if orcid in author_papers:
         for paper in author_papers[orcid]:
             authorGraph.addPaper(orcid, paper)
@@ -288,10 +285,8 @@ for _, row in data.iterrows():
         if coauthor_orcid:
             authorGraph.addEdges(row["author_orcid"], coauthor_orcid)
 
-# Bağlantıları temizle
 clean_connections(authorGraph, data)
 
-# Temizlenmiş grafı JSON'a yaz
 authorGraph.writeJsonManual("cleaned_graph_output.json")
 print("Bağlantılardan yazarın kendi ismiyle eşleşenler temizlendi ve güncellenmiş JSON dosyasına yazıldı: cleaned_graph_output.json")
 
@@ -329,7 +324,7 @@ else:
     print(f"Count id number of connections is : {count_connection}")
     print(f"No such ORCID {start_id} exists in the graph.")
 
-    # 2. İster: Kullanıcıdan yazar ID'si al ve kuyruk oluştur
+   
 author_id = input("dugum olusturmak icin ORCID id giriniz: ")
 if author_id in authorGraph.getNodes():
     priority_queue = create_priority_queue_manual(authorGraph, author_id)
@@ -337,7 +332,7 @@ if author_id in authorGraph.getNodes():
 else:
     print(f"No such ORCID {author_id} exists in the graph.")
 
-# 2. İster: Kullanıcıdan yazar ID'si al ve kuyruk oluştur
+
 author_id = input("dugum olusturmak icin ORCID id giriniz: ")
 if author_id in authorGraph.getNodes():
     priority_queue = create_priority_queue_manual(authorGraph, author_id)
