@@ -33,30 +33,42 @@ def create_visualization(graph_data):
     
     with open(graph_data, 'r', encoding='utf-8') as file:
         data = json.load(file)
+        
+    paper_counts = [
+    len(node.get("papers", [])) 
+    for node in data["nodes"] 
+    if not node["orcid"].startswith("generated")
+    ]
 
-    # Makale sayılarını ve eşik değerlerini hesapla
-    paper_counts = [len(node.get("papers", [])) for node in data["nodes"]]
-    average_paper_count = sum(paper_counts) / len(paper_counts)
-    threshold_high = average_paper_count * 1.2
-    threshold_low = average_paper_count * 0.8
-    
+    # Ortalama ve eşik değerlerini hesapla
+    if paper_counts:
+        average_paper_count = sum(paper_counts) / len(paper_counts)
+        threshold_high = average_paper_count * 1.2
+        threshold_low = average_paper_count * 0.8
+    else:
+        average_paper_count = threshold_high = threshold_low = 0  # Hiç düğüm yoksa sıfırla
+
     added_nodes = set()
     for node in data["nodes"]:
         node_id = node["orcid"]
+
         if node_id not in added_nodes:
             # Her düğüm için makale sayısını hesaplayın
             paper_count = len(node.get("papers", []))
-
-            # Boyut ve renk ayarları
-            if paper_count > threshold_high:
-                color = "#ff0000"  # Koyu renk
-                size = 40  # Büyük boyut
-            elif paper_count < threshold_low:
-                color = "#00ff00"  # Açık renk
-                size = 20  # Küçük boyut
+            if node_id.startswith("generated"):
+                color = "#ff9999"  # Fosforlu yeşil
+                size = 20  # Varsayılan boyut
             else:
-                color = "#ffffff"  # Orta renk
-                size = 30  # Orta boyut
+                # Boyut ve renk ayarları
+                if paper_count > threshold_high:
+                    color = "#00ff00"  # Koyu renk
+                    size = 60  # Büyük boyut
+                elif paper_count < threshold_low:
+                    color = "#00ff00"  # Açık renk
+                    size = 20  # Küçük boyut
+                else:
+                    color = "#00ff00"  # Orta renk
+                    size = 40  # Orta boyut
 
             # Düğüm ekleme
             net.add_node(
